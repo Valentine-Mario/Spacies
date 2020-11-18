@@ -1,4 +1,3 @@
-
 use crate::schema::*;
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +8,8 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub user_password: String,
-    pub user_image:String,
-    pub verified:bool,
+    pub user_image: String,
+    pub verified: bool,
     pub created_at: chrono::NaiveDateTime,
 }
 
