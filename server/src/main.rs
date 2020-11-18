@@ -44,7 +44,13 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/user")
                     .route("/verify", web::get().to(user_handler::verify_user))
-                    .route("/add", web::post().to(user_handler::add_user)),
+                    .route(
+                        "/resend/verification",
+                        web::get().to(user_handler::resend_verification),
+                    )
+                    .route("/profile", web::get().to(user_handler::get_profile))
+                    .route("/add", web::post().to(user_handler::add_user))
+                    .route("/login", web::post().to(user_handler::login)),
             )
             .service(web::scope("/spacies"))
     });

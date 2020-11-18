@@ -47,7 +47,119 @@ pub async fn verify_user(
     }
 }
 
+pub async fn resend_verification(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || resend_verification_db(db, auth.token().to_string()))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| HttpResponse::InternalServerError())?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn login(db: web::Data<Pool>, item: web::Json<LoginUser>) -> Result<HttpResponse, Error> {
+    Ok(web::block(move || login_db(db, item))
+        .await
+        .map(|user| HttpResponse::Ok().json(user))
+        .map_err(|_| HttpResponse::InternalServerError())?)
+}
+
+pub async fn get_profile(db: web::Data<Pool>, auth: BearerAuth) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || get_profile_db(db, auth.token().to_string()))
+                        .await
+                        .map(|user| HttpResponse::Ok().json(user))
+                        .map_err(|_| HttpResponse::InternalServerError())?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
 //db calls
+fn get_profile_db(
+    db: web::Data<Pool>,
+    token: String,
+) -> Result<Response<User>, diesel::result::Error> {
+    let decoded_token = auth::decode_token(&token);
+    let conn = db.get().unwrap();
+    let user: User = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first(&conn)?;
+    Ok(Response::new(true, user))
+}
+
+fn login_db(
+    db: web::Data<Pool>,
+    item: web::Json<LoginUser>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let user_details = users.filter(email.ilike(&item.email)).first::<User>(&conn);
+    match user_details {
+        Ok(user) => {
+            let cmp_pwd = bcrypt::compare_password(&user.user_password, &item.user_password);
+            if cmp_pwd {
+                let token = auth::create_token(&user.id.to_string(), 30).unwrap();
+                return Ok(Response::new(true, token.to_string()));
+            } else {
+                return Ok(Response::new(false, "invalid password".to_string()));
+            }
+        }
+        Err(diesel::result::Error::NotFound) => {
+            Ok(Response::new(false, "email not found".to_string()))
+        }
+        _ => Ok(Response::new(false, "email not found".to_string())),
+    }
+}
+
+fn resend_verification_db(
+    db: web::Data<Pool>,
+    token: String,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user: User = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first(&conn)?;
+    if user.verified {
+        return Ok(Response::new(
+            false,
+            "your account is already verified".to_string(),
+        ));
+    } else {
+        //send user verification email
+        let mail_token = auth::create_token(&user.id.to_string(), 1).unwrap();
+        let email_template = email_template::verification_email(&mail_token);
+        email::send_email(
+            &user.email,
+            &user.username,
+            &"Welcome To Spacies".to_string(),
+            &email_template,
+        );
+        return Ok(Response::new(
+            true,
+            "verification email sent successfully".to_string(),
+        ));
+    }
+}
+
 fn verify_user_db(
     db: web::Data<Pool>,
     item: web::Query<QueryInfo>,
