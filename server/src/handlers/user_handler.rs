@@ -7,6 +7,7 @@ use crate::model::{NewUser, User};
 use crate::schema::users::dsl::*;
 use crate::Pool;
 
+use actix_files::NamedFile;
 use actix_web::{web, Error, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use diesel::dsl::{delete, insert_into};
@@ -25,13 +26,40 @@ pub async fn add_user(
         })?)
 }
 
-
-
-
-
-
+pub async fn verify_user(
+    db: web::Data<Pool>,
+    item: web::Query<QueryInfo>,
+) -> Result<NamedFile, ()> {
+    let success_file = format!("./pages/welcome.html");
+    let error_file = format!("./pages/jwt_user_error.html");
+    match auth::validate_token(&item.token.to_string()) {
+        Ok(res) => {
+            if res == true {
+                web::block(move || verify_user_db(db, item))
+                    .await
+                    .map(|_user| NamedFile::open(success_file).unwrap())
+                    .map_err(|_| ())
+            } else {
+                Ok(NamedFile::open(error_file).unwrap())
+            }
+        }
+        Err(_) => Ok(NamedFile::open(error_file).unwrap()),
+    }
+}
 
 //db calls
+fn verify_user_db(
+    db: web::Data<Pool>,
+    item: web::Query<QueryInfo>,
+) -> Result<(), diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&item.token);
+    let _user_verified = diesel::update(users.find(decoded_token.parse::<i32>().unwrap()))
+        .set(verified.eq(true))
+        .execute(&conn);
+    Ok(())
+}
+
 fn add_user_db(
     db: web::Data<Pool>,
     item: web::Json<CreateUser>,
@@ -39,8 +67,11 @@ fn add_user_db(
     let conn = db.get().unwrap();
 
     //password should be min of 6 char
-    if &item.user_password.chars().count()< &6{
-        return Ok(Response::new(false, "password should be min of 6 characters".to_string()))
+    if &item.user_password.chars().count() < &6 {
+        return Ok(Response::new(
+            false,
+            "password should be min of 6 characters".to_string(),
+        ));
     }
     let hashed = bcrypt::encrypt_password(&item.user_password.to_string());
     let new_user = NewUser {

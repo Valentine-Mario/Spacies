@@ -41,7 +41,11 @@ async fn main() -> std::io::Result<()> {
             .wrap(Cors::permissive())
             .wrap(Logger::default())
             .data(pool.clone())
-            .service(web::scope("/user").route("/add", web::post().to(user_handler::add_user)))
+            .service(
+                web::scope("/user")
+                    .route("/verify", web::get().to(user_handler::verify_user))
+                    .route("/add", web::post().to(user_handler::add_user)),
+            )
             .service(web::scope("/spacies"))
     });
 
