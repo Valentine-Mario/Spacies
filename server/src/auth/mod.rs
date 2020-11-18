@@ -65,10 +65,10 @@ pub fn decode_token(token: &String) -> String {
     token_data.claims.company
 }
 
-pub fn create_token(user: &String) -> Result<String, Box<dyn std::error::Error>> {
+pub fn create_token(user: &String, duration: i64) -> Result<String, Box<dyn std::error::Error>> {
     let sub = "user".to_string();
     let company = user.to_string();
-    let exp = Utc::now() + chrono::Duration::days(1);
+    let exp = Utc::now() + chrono::Duration::days(duration);
     let secret = &std::env::var("JWT_SECRET").expect("JWT SECRET not set");
 
     let claims = Claims::new(sub, company, exp);
