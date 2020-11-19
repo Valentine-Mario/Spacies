@@ -51,6 +51,7 @@ async fn main() -> std::io::Result<()> {
                     )
                     .route("/profile", web::get().to(user_handler::get_profile))
                     .route("/add", web::post().to(user_handler::add_user))
+                    .route("/updatename", web::post().to(user_handler::update_name))
                     .route("/addimg", web::post().to(user_handler::update_profile_img))
                     .route("/login", web::post().to(user_handler::login)),
             )
