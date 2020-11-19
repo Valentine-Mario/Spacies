@@ -24,6 +24,21 @@ pub struct LoginUser {
     pub user_password: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateName {
+    pub username: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdatePassword {
+    pub old_password: String,
+    pub new_password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ForgotPassword {
+    pub email: String,
+}
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }

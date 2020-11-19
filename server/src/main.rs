@@ -24,6 +24,7 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
+    std::fs::create_dir_all("./tmp").unwrap();
     // create db connection pool
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     let pool: Pool = r2d2::Pool::builder()
@@ -50,6 +51,16 @@ async fn main() -> std::io::Result<()> {
                     )
                     .route("/profile", web::get().to(user_handler::get_profile))
                     .route("/add", web::post().to(user_handler::add_user))
+                    .route("/updatename", web::post().to(user_handler::update_name))
+                    .route(
+                        "/updatepassword",
+                        web::post().to(user_handler::update_password),
+                    )
+                    .route("/addimg", web::post().to(user_handler::update_profile_img))
+                    .route(
+                        "/forgotpassword",
+                        web::post().to(user_handler::forgot_password),
+                    )
                     .route("/login", web::post().to(user_handler::login)),
             )
             .service(web::scope("/spacies"))
