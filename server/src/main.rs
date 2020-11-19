@@ -52,7 +52,15 @@ async fn main() -> std::io::Result<()> {
                     .route("/profile", web::get().to(user_handler::get_profile))
                     .route("/add", web::post().to(user_handler::add_user))
                     .route("/updatename", web::post().to(user_handler::update_name))
+                    .route(
+                        "/updatepassword",
+                        web::post().to(user_handler::update_password),
+                    )
                     .route("/addimg", web::post().to(user_handler::update_profile_img))
+                    .route(
+                        "/forgotpassword",
+                        web::post().to(user_handler::forgot_password),
+                    )
                     .route("/login", web::post().to(user_handler::login)),
             )
             .service(web::scope("/spacies"))

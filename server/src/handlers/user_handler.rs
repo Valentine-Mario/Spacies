@@ -14,6 +14,8 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use diesel::dsl::insert_into;
 use diesel::prelude::*;
 use futures::{StreamExt, TryStreamExt};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use std::fs;
 use std::fs::remove_file;
 use std::io::Write;
@@ -205,7 +207,106 @@ pub async fn update_name(
     }
 }
 
+pub async fn update_password(
+    db: web::Data<Pool>,
+    item: web::Json<UpdatePassword>,
+    auth: BearerAuth,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || update_password_db(db, item, auth.token().to_string()))
+                        .await
+                        .map(|user| HttpResponse::Ok().json(user))
+                        .map_err(|_| {
+                            HttpResponse::Ok().json(Response::new(false, "error updating password"))
+                        })?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn forgot_password(
+    db: web::Data<Pool>,
+    item: web::Json<ForgotPassword>,
+) -> Result<HttpResponse, Error> {
+    Ok(web::block(move || forgot_password_db(db, item))
+        .await
+        .map(|user| HttpResponse::Ok().json(user))
+        .map_err(|_| HttpResponse::Ok().json(Response::new(false, "error sending mail")))?)
+}
+
 //db calls
+fn forgot_password_db(
+    db: web::Data<Pool>,
+    item: web::Json<ForgotPassword>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let user_details = users.filter(email.ilike(&item.email)).first::<User>(&conn);
+    match user_details {
+        Ok(user) => {
+            //generate random string
+            let rand_string: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
+
+            let email_template = email_template::forgot_password_email(&rand_string);
+            email::send_email(
+                &user.email,
+                &user.username,
+                &"Password Reset".to_string(),
+                &email_template,
+            );
+            let hashed = bcrypt::encrypt_password(&rand_string);
+            let _updates = diesel::update(users.find(user.id))
+                .set(user_password.eq(&hashed))
+                .execute(&conn);
+            return Ok(Response::new(
+                true,
+                "Reset email sent successfully".to_string(),
+            ));
+        }
+        Err(diesel::result::Error::NotFound) => {
+            Ok(Response::new(false, "email not found".to_string()))
+        }
+        _ => Ok(Response::new(false, "error geting data".to_string())),
+    }
+}
+
+fn update_password_db(
+    db: web::Data<Pool>,
+    item: web::Json<UpdatePassword>,
+    token: String,
+) -> Result<Response<String>, diesel::result::Error> {
+    let decoded_token = auth::decode_token(&token);
+    let conn = db.get().unwrap();
+    let user: User = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first(&conn)?;
+    let cmp_pwd = bcrypt::compare_password(&user.user_password, &item.old_password);
+    if cmp_pwd {
+        if &item.new_password.chars().count() < &6 {
+            return Ok(Response::new(
+                false,
+                "password should be min of 6 characters".to_string(),
+            ));
+        }
+        let hashed = bcrypt::encrypt_password(&item.new_password);
+        let _updates = diesel::update(users.find(user.id))
+            .set(user_password.eq(&hashed))
+            .execute(&conn);
+        return Ok(Response::new(
+            true,
+            "password updated successfully".to_string(),
+        ));
+    } else {
+        return Ok(Response::new(false, "incorrect password".to_string()));
+    }
+}
+
 fn updat_name_db(
     db: web::Data<Pool>,
     item: web::Json<UpdateName>,
