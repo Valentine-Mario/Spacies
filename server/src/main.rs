@@ -65,9 +65,14 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/spacies")
+                    .route("/get/{info}", web::get().to(space_handler::get_space))
                     .route(
                         "/updateimg/{info}",
                         web::post().to(space_handler::update_space_logo),
+                    )
+                    .route(
+                        "/updatespace/{info}",
+                        web::post().to(space_handler::update_space),
                     )
                     .route("/add", web::post().to(space_handler::add_space)),
             )
