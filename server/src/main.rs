@@ -63,7 +63,19 @@ async fn main() -> std::io::Result<()> {
                     )
                     .route("/login", web::post().to(user_handler::login)),
             )
-            .service(web::scope("/spacies"))
+            .service(
+                web::scope("/spacies")
+                    .route("/get/{info}", web::get().to(space_handler::get_space))
+                    .route(
+                        "/updateimg/{info}",
+                        web::post().to(space_handler::update_space_logo),
+                    )
+                    .route(
+                        "/updatespace/{info}",
+                        web::post().to(space_handler::update_space),
+                    )
+                    .route("/add", web::post().to(space_handler::add_space)),
+            )
     });
 
     server = match listenfd.take_tcp_listener(0)? {

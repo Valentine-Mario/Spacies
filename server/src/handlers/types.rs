@@ -39,6 +39,17 @@ pub struct UpdatePassword {
 pub struct ForgotPassword {
     pub email: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateSpace {
+    pub spaces_name: String,
+    pub spaces_desc: String,
+}
+
+#[derive(Deserialize)]
+pub struct PathInfo {
+    pub info: String,
+}
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }
