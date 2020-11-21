@@ -50,6 +50,12 @@ pub struct CreateSpace {
 pub struct PathInfo {
     pub info: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InviteToSpace {
+    pub email: Vec<String>,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }
