@@ -66,6 +66,8 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/spacies")
                     .route("/get/{info}", web::get().to(space_handler::get_space))
+                    .route("/myspaces", web::get().to(space_handler::get_user_space))
+                    .route("/invitepage", web::get().to(space_handler::invite_page))
                     .route(
                         "/updateimg/{info}",
                         web::post().to(space_handler::update_space_logo),
@@ -74,6 +76,11 @@ async fn main() -> std::io::Result<()> {
                         "/updatespace/{info}",
                         web::post().to(space_handler::update_space),
                     )
+                    .route(
+                        "/acceptinvite",
+                        web::post().to(space_handler::add_invited_user),
+                    )
+                    .route("/invite/{info}", web::post().to(space_handler::invite_user))
                     .route("/add", web::post().to(space_handler::add_space)),
             )
     });

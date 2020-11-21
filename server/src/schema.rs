@@ -12,7 +12,7 @@ table! {
     spaces_users (id) {
         id -> Int4,
         user_id -> Int4,
-        spaces_id -> Int4,
+        space_id -> Int4,
         admin_status -> Bool,
     }
 }
@@ -29,7 +29,7 @@ table! {
     }
 }
 
-joinable!(spaces_users -> spaces (spaces_id));
+joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(spaces, spaces_users, users,);

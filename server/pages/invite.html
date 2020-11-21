@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spacies</title>
+</head>
+<body>
+    Fill the form to complete invite
+    <form id="invite">
+        <label>Username</label>
+        <input type="text" placeholder="Add username"  id="username"/><br/>
+        <label>Email</label>
+        <input placeholder="Add email" type="text" id="email"/><br/>
+        <label>Password(min of 6 characters)</label>
+        <input type="password" placeholder="password" minlength="6" id="user_password"/>
+        <button id="submit">Create</button>
+    </form>
+</body>
+<script>
+    var urlParams;
+(window.onpopstate = function () {
+    var match,
+        pl     = /\+/g,  // Regex for replacing addition symbol with a space
+        search = /([^&=]+)=?([^&]*)/g,
+        decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+        query  = window.location.search.substring(1);
+
+    urlParams = {};
+    while (match = search.exec(query))
+       urlParams[decode(match[1])] = decode(match[2]);
+})();
+
+document.getElementById('submit').addEventListener('click', (event)=>{
+                event.preventDefault();
+                if(document.getElementById("username").value===""||document.getElementById("email").value===""||
+                document.getElementById("user_password").value===""){
+                    alert("please complete all fields")
+                    return
+                }
+                var obj={
+                    username:document.getElementById("username").value,
+                    email:document.getElementById("email").value,
+                    user_password:document.getElementById("user_password").value
+                }
+                fetch(`http://localhost:5000/spacies/acceptinvite?token=${urlParams.token}`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+},
+                    body:JSON.stringify(obj)
+                }).then((res) => res.json())
+                .then((data) => {
+                    if(data.success){
+                        alert("Your account has been created sucessfully")
+                        return
+                    }else{
+                        if(data.error==="jwt error"){
+                            alert("token expired. Ask for a new invite")
+                            return
+                        }
+                        alert(data.message);
+                        return
+                    }
+                })
+                .catch((err)=>console.log(err))
+           }
+)
+</script>
+</html>
