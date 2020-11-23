@@ -191,14 +191,29 @@ pub async fn update_space(
 
 pub async fn get_space(
     db: web::Data<Pool>,
+    auth: BearerAuth,
     space_name: web::Path<PathInfo>,
 ) -> Result<HttpResponse, Error> {
-    Ok(web::block(move || get_space_db(db, space_name))
-        .await
-        .map(|response| HttpResponse::Ok().json(response))
-        .map_err(|_| {
-            HttpResponse::Ok().json(Response::new(false, "Space not found".to_string()))
-        })?)
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || get_space_db(db, auth.token().to_string(), space_name))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok().json(Response::new(
+                                false,
+                                "Unauthorized to view space".to_string(),
+                            ))
+                        })?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
 }
 
 pub async fn get_user_space(db: web::Data<Pool>, auth: BearerAuth) -> Result<HttpResponse, Error> {
@@ -407,12 +422,21 @@ fn get_user_space_db(
 
 fn get_space_db(
     db: web::Data<Pool>,
+    token: String,
     space_name: web::Path<PathInfo>,
 ) -> Result<Response<Space>, diesel::result::Error> {
     let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user: User = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first(&conn)?;
     let space_details = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
+    let spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space_details.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
     Ok(Response::new(true, space_details))
 }
 
