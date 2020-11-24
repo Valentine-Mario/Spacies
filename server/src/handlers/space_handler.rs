@@ -3,8 +3,12 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
 use crate::helpers::{aws, bcrypt, email, email_template};
-use crate::model::{NewSpace, NewSpaceUser, NewUser, Space, SpaceUser, User};
+use crate::model::{NewSpace, NewSpaceChannel, NewSpaceUser, NewUser, Space, SpaceUser, User};
 use crate::schema::spaces::dsl::*;
+#[allow(unused_imports)]
+use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
+use crate::schema::spaces_channel::dsl::*;
+use crate::schema::spaces_users::dsl::space_id;
 use crate::schema::spaces_users::dsl::*;
 use crate::schema::users::dsl::*;
 use crate::Pool;
@@ -191,14 +195,29 @@ pub async fn update_space(
 
 pub async fn get_space(
     db: web::Data<Pool>,
+    auth: BearerAuth,
     space_name: web::Path<PathInfo>,
 ) -> Result<HttpResponse, Error> {
-    Ok(web::block(move || get_space_db(db, space_name))
-        .await
-        .map(|response| HttpResponse::Ok().json(response))
-        .map_err(|_| {
-            HttpResponse::Ok().json(Response::new(false, "Space not found".to_string()))
-        })?)
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || get_space_db(db, auth.token().to_string(), space_name))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok().json(Response::new(
+                                false,
+                                "Unauthorized to view space".to_string(),
+                            ))
+                        })?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
 }
 
 pub async fn get_user_space(db: web::Data<Pool>, auth: BearerAuth) -> Result<HttpResponse, Error> {
@@ -407,12 +426,21 @@ fn get_user_space_db(
 
 fn get_space_db(
     db: web::Data<Pool>,
+    token: String,
     space_name: web::Path<PathInfo>,
 ) -> Result<Response<Space>, diesel::result::Error> {
     let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user: User = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first(&conn)?;
     let space_details = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space_details.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
     Ok(Response::new(true, space_details))
 }
 
@@ -506,6 +534,16 @@ fn add_space_db(
             let _space_user: SpaceUser = insert_into(spaces_users)
                 .values(&new_space_user)
                 .get_result(&conn)?;
+
+            //add default space channel on creation
+            let default_space_channel = NewSpaceChannel {
+                space_id: &space.id,
+                channel_name: &"General".to_string(),
+            };
+            let _space_channel = insert_into(spaces_channel)
+                .values(&default_space_channel)
+                .execute(&conn)?;
+
             return Ok(Response::new(
                 true,
                 "space created successfully".to_string(),

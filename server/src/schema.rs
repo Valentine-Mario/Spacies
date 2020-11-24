@@ -9,6 +9,14 @@ table! {
 }
 
 table! {
+    spaces_channel (id) {
+        id -> Int4,
+        channel_name -> Text,
+        space_id -> Int4,
+    }
+}
+
+table! {
     spaces_users (id) {
         id -> Int4,
         user_id -> Int4,
@@ -29,7 +37,8 @@ table! {
     }
 }
 
+joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 
-allow_tables_to_appear_in_same_query!(spaces, spaces_users, users,);
+allow_tables_to_appear_in_same_query!(spaces, spaces_channel, spaces_users, users,);

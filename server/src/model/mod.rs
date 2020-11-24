@@ -59,3 +59,19 @@ pub struct NewSpaceUser<'a> {
     pub space_id: &'a i32,
     pub admin_status: &'a bool,
 }
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "spaces_channel"]
+#[belongs_to(Space)]
+pub struct SpaceChannel {
+    pub id: i32,
+    pub space_id: i32,
+    pub channel_name: String,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "spaces_channel"]
+pub struct NewSpaceChannel<'a> {
+    pub space_id: &'a i32,
+    pub channel_name: &'a str,
+}
