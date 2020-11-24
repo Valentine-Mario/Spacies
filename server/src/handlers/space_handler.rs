@@ -17,7 +17,7 @@ use actix_files::NamedFile;
 use actix_multipart::Multipart;
 use actix_web::{web, Error, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use diesel::dsl::insert_into;
+use diesel::dsl::{delete, insert_into};
 use diesel::prelude::*;
 use futures::{StreamExt, TryStreamExt};
 use std::fs;
@@ -288,7 +288,240 @@ pub async fn invite_page(_item: web::Query<QueryInfo>) -> Result<NamedFile, ()> 
     Ok(NamedFile::open(success_file).unwrap())
 }
 
+pub async fn get_user_space_status(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<PathInfo>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_user_space_status_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error getting status".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn remove_user_from_space(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<PathInfo>,
+    item: web::Json<UserIdStruct>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    remove_user_from_space_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok().json(Response::new(
+                        false,
+                        "Error getting space details".to_string(),
+                    ))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn leave_space(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<PathInfo>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || leave_space_db(db, auth.token().to_string(), space_name))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok().json(Response::new(
+                                false,
+                                "Error getting space details".to_string(),
+                            ))
+                        })?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn change_user_priviledge_status(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<PathInfo>,
+    item: web::Json<PriviledgeStruct>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    change_user_priviledge_status_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok().json(Response::new(
+                        false,
+                        "Error getting space details".to_string(),
+                    ))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
 //db calls
+fn change_user_priviledge_status_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<PathInfo>,
+    item: web::Json<PriviledgeStruct>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+
+    let spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+
+    if !spaces_user.admin_status {
+        return Ok(Response::new(
+            false,
+            "Only admin is permitted to change a user priviledge status".to_string(),
+        ));
+    }
+    //get details of user to be kicked out
+    let update_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(item.user))
+        .first::<SpaceUser>(&conn)?;
+
+    let _space_details = diesel::update(spaces_users.find(update_user.id))
+        .set(admin_status.eq(&item.admin))
+        .execute(&conn)?;
+    Ok(Response::new(
+        true,
+        "priviledge status changed successfully".to_string(),
+    ))
+}
+
+fn leave_space_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<PathInfo>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+    let _delete_user = delete(spaces_users.find(spaces_user.id)).execute(&conn)?;
+    Ok(Response::new(
+        true,
+        "Removed from Space successfully".to_string(),
+    ))
+}
+
+fn remove_user_from_space_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<PathInfo>,
+    item: web::Json<UserIdStruct>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+
+    let spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+
+    if !spaces_user.admin_status {
+        return Ok(Response::new(
+            false,
+            "Only admin is permitted to kick user out of this space".to_string(),
+        ));
+    }
+    //get details of user to be kicked out
+    let kicked_out_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(item.user))
+        .first::<SpaceUser>(&conn)?;
+    let _delete_user = delete(spaces_users.find(kicked_out_user.id)).execute(&conn)?;
+    Ok(Response::new(
+        true,
+        "user kicked out successfully".to_string(),
+    ))
+}
+
+fn get_user_space_status_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<PathInfo>,
+) -> Result<Response<bool>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+
+    let space_user_status = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .select(admin_status)
+        .first(&conn)?;
+    Ok(Response::new(true, space_user_status))
+}
+
 fn add_invited_user_db(
     db: web::Data<Pool>,
     item: web::Json<CreateUser>,

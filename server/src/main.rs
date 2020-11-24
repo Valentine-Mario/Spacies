@@ -68,6 +68,11 @@ async fn main() -> std::io::Result<()> {
                     .route("/get/{info}", web::get().to(space_handler::get_space))
                     .route("/myspaces", web::get().to(space_handler::get_user_space))
                     .route("/invitepage", web::get().to(space_handler::invite_page))
+                    .route("/leave/{info}", web::get().to(space_handler::leave_space))
+                    .route(
+                        "/getstatus/{info}",
+                        web::get().to(space_handler::get_user_space_status),
+                    )
                     .route(
                         "/updateimg/{info}",
                         web::post().to(space_handler::update_space_logo),
@@ -80,7 +85,15 @@ async fn main() -> std::io::Result<()> {
                         "/acceptinvite",
                         web::post().to(space_handler::add_invited_user),
                     )
+                    .route(
+                        "changeuserstatus/{info}",
+                        web::post().to(space_handler::change_user_priviledge_status),
+                    )
                     .route("/invite/{info}", web::post().to(space_handler::invite_user))
+                    .route(
+                        "/kickout/{info}",
+                        web::post().to(space_handler::remove_user_from_space),
+                    )
                     .route("/add", web::post().to(space_handler::add_space)),
             )
     });
