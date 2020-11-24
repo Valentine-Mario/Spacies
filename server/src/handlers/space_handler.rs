@@ -3,8 +3,12 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
 use crate::helpers::{aws, bcrypt, email, email_template};
-use crate::model::{NewSpace, NewSpaceUser, NewUser, Space, SpaceUser, User};
+use crate::model::{NewSpace, NewSpaceChannel, NewSpaceUser, NewUser, Space, SpaceUser, User};
 use crate::schema::spaces::dsl::*;
+#[allow(unused_imports)]
+use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
+use crate::schema::spaces_channel::dsl::*;
+use crate::schema::spaces_users::dsl::space_id;
 use crate::schema::spaces_users::dsl::*;
 use crate::schema::users::dsl::*;
 use crate::Pool;
@@ -433,7 +437,7 @@ fn get_space_db(
     let space_details = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
-    let spaces_user: SpaceUser = spaces_users
+    let _spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space_details.id))
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
@@ -530,6 +534,16 @@ fn add_space_db(
             let _space_user: SpaceUser = insert_into(spaces_users)
                 .values(&new_space_user)
                 .get_result(&conn)?;
+
+            //add default space channel on creation
+            let default_space_channel = NewSpaceChannel {
+                space_id: &space.id,
+                channel_name: &"General".to_string(),
+            };
+            let _space_channel = insert_into(spaces_channel)
+                .values(&default_space_channel)
+                .execute(&conn)?;
+
             return Ok(Response::new(
                 true,
                 "space created successfully".to_string(),
