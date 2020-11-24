@@ -56,6 +56,17 @@ pub struct InviteToSpace {
     pub email: Vec<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserIdStruct {
+    pub user: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PriviledgeStruct {
+    pub admin: bool,
+    pub user: i32,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }
