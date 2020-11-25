@@ -67,6 +67,16 @@ pub struct PriviledgeStruct {
     pub user: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChannelField {
+    pub channel_name: String,
+}
+
+#[derive(Deserialize)]
+pub struct ChannelPathInfo {
+    pub info: String,
+    pub channel: String,
+}
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }

@@ -65,8 +65,8 @@ pub struct NewSpaceUser<'a> {
 #[belongs_to(Space)]
 pub struct SpaceChannel {
     pub id: i32,
-    pub space_id: i32,
     pub channel_name: String,
+    pub space_id: i32,
 }
 
 #[derive(Insertable, Debug)]

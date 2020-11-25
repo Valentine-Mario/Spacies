@@ -70,6 +70,10 @@ async fn main() -> std::io::Result<()> {
                     .route("/invitepage", web::get().to(space_handler::invite_page))
                     .route("/leave/{info}", web::get().to(space_handler::leave_space))
                     .route(
+                        "/getusers/{info}",
+                        web::get().to(space_handler::get_users_in_space),
+                    )
+                    .route(
                         "/getstatus/{info}",
                         web::get().to(space_handler::get_user_space_status),
                     )
@@ -95,6 +99,25 @@ async fn main() -> std::io::Result<()> {
                         web::post().to(space_handler::remove_user_from_space),
                     )
                     .route("/add", web::post().to(space_handler::add_space)),
+            )
+            .service(
+                web::scope("/channel")
+                    .route(
+                        "/get/{info}",
+                        web::get().to(channel_handler::get_channels_in_space),
+                    )
+                    .route(
+                        "/delete/{info}/{channel}",
+                        web::get().to(channel_handler::delete_channel),
+                    )
+                    .route(
+                        "/add/{info}",
+                        web::post().to(channel_handler::create_new_channel),
+                    )
+                    .route(
+                        "/update/{info}/{channel}",
+                        web::post().to(channel_handler::edit_channel_name),
+                    ),
             )
     });
 

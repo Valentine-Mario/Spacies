@@ -396,7 +396,36 @@ pub async fn change_user_priviledge_status(
     }
 }
 
+pub async fn get_users_in_space(
+    db: web::Data<Pool>,
+    space_name: web::Path<PathInfo>,
+) -> Result<HttpResponse, Error> {
+    Ok(web::block(move || get_users_in_space_db(db, space_name))
+        .await
+        .map(|response| HttpResponse::Ok().json(response))
+        .map_err(|_| {
+            HttpResponse::Ok().json(Response::new(
+                false,
+                "Error getting space details".to_string(),
+            ))
+        })?)
+}
+
 //db calls
+fn get_users_in_space_db(
+    db: web::Data<Pool>,
+    space_name: web::Path<PathInfo>,
+) -> Result<Response<Vec<(SpaceUser, User)>>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let user_spaces: Vec<_> = SpaceUser::belonging_to(&space)
+        .inner_join(users)
+        .load::<(SpaceUser, User)>(&conn)?;
+    Ok(Response::new(true, user_spaces))
+}
+
 fn change_user_priviledge_status_db(
     db: web::Data<Pool>,
     token: String,
