@@ -1,3 +1,12 @@
+
+table! {
+    maillists (id) {
+        id -> Int4,
+        folder_name -> Text,
+        space_id -> Int4,
+    }
+}
+
 table! {
     spaces (id) {
         id -> Int4,
@@ -26,6 +35,15 @@ table! {
 }
 
 table! {
+    usermails (id) {
+        id -> Int4,
+        folder_name -> Text,
+        maillist_id -> Int4,
+        user_id -> Int4,
+    }
+}
+
+table! {
     users (id) {
         id -> Int4,
         username -> Text,
@@ -37,8 +55,18 @@ table! {
     }
 }
 
+joinable!(maillists -> spaces (space_id));
 joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
+joinable!(usermails -> maillists (maillist_id));
+joinable!(usermails -> users (user_id));
 
-allow_tables_to_appear_in_same_query!(spaces, spaces_channel, spaces_users, users,);
+allow_tables_to_appear_in_same_query!(
+    maillists,
+    spaces,
+    spaces_channel,
+    spaces_users,
+    usermails,
+    users,
+);
