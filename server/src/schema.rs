@@ -1,4 +1,3 @@
-
 table! {
     maillists (id) {
         id -> Int4,
@@ -37,8 +36,7 @@ table! {
 table! {
     usermails (id) {
         id -> Int4,
-        folder_name -> Text,
-        maillist_id -> Int4,
+        mail_list_id -> Int4,
         user_id -> Int4,
     }
 }
@@ -59,7 +57,7 @@ joinable!(maillists -> spaces (space_id));
 joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
-joinable!(usermails -> maillists (maillist_id));
+joinable!(usermails -> maillists (mail_list_id));
 joinable!(usermails -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(

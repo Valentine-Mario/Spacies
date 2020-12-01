@@ -77,6 +77,22 @@ pub struct ChannelPathInfo {
     pub info: String,
     pub channel: String,
 }
+
+#[derive(Deserialize)]
+pub struct MailChannelPathInfo {
+    pub info: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateMailList {
+    pub folder_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeleteMailList {
+    pub id: i32,
+}
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }
