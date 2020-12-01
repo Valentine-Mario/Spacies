@@ -119,6 +119,13 @@ async fn main() -> std::io::Result<()> {
                         web::post().to(channel_handler::edit_channel_name),
                     ),
             )
+            .service(
+                web::scope("/maillist")
+                .route("/get/{info}", web::get().to(mail_folder_handler::get_space_mail_folder))
+                .route("/getuser/{info}/{name}", web::get().to(mail_folder_handler::get_mail_folder_details))
+                .route("/add/{info}", web::post().to(mail_folder_handler::add_mail_folder))
+                .route("/delete/{info}", web::post().to(mail_folder_handler::delete_mail_folder))
+            )
     });
 
     server = match listenfd.take_tcp_listener(0)? {

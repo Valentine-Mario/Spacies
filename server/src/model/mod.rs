@@ -75,3 +75,36 @@ pub struct NewSpaceChannel<'a> {
     pub space_id: &'a i32,
     pub channel_name: &'a str,
 }
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "maillists"]
+#[belongs_to(Space)]
+pub struct MailList {
+    pub id: i32,
+    pub folder_name: String,
+    pub space_id: i32,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "maillists"]
+pub struct NewMailList<'a> {
+    pub folder_name: &'a str,
+    pub space_id: &'a i32,
+}
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "usermails"]
+#[belongs_to(MailList)]
+#[belongs_to(User)]
+pub struct UserMail {
+    pub id: i32,
+    pub mail_list_id: i32,
+    pub user_id: i32,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "usermails"]
+pub struct NewUserMail<'a> {
+    pub mail_list_id: &'a i32,
+    pub user_id: &'a i32,
+}
