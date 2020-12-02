@@ -121,10 +121,27 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/maillist")
-                .route("/get/{info}", web::get().to(mail_folder_handler::get_space_mail_folder))
-                .route("/getuser/{info}/{name}", web::get().to(mail_folder_handler::get_mail_folder_details))
-                .route("/add/{info}", web::post().to(mail_folder_handler::add_mail_folder))
-                .route("/delete/{info}", web::post().to(mail_folder_handler::delete_mail_folder))
+                    .route(
+                        "/get/{info}",
+                        web::get().to(mail_folder_handler::get_space_mail_folder),
+                    )
+                    .route(
+                        "/getuser/{info}/{name}",
+                        web::get().to(mail_folder_handler::get_mail_folder_details),
+                    )
+                    .route(
+                        "/add/{info}",
+                        web::post().to(mail_folder_handler::add_mail_folder),
+                    )
+                    .route(
+                        "/delete/{info}",
+                        web::post().to(mail_folder_handler::delete_mail_folder),
+                    ),
+            )
+            .service(
+                web::scope("/usermail")
+                .route("/add/{info}/{id}", web::post().to(mail_user_handler::add_user_folder))
+                .route("/delete/{info}/{id}", web::post().to(mail_user_handler::remove_user_folder))
             )
     });
 
