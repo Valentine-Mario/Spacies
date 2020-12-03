@@ -108,3 +108,39 @@ pub struct NewUserMail<'a> {
     pub mail_list_id: &'a i32,
     pub user_id: &'a i32,
 }
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "assets"]
+#[belongs_to(Space)]
+pub struct Asset {
+    pub id: i32,
+    pub folder_name: String,
+    pub space_id: i32,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "assets"]
+pub struct NewAsset<'a> {
+    pub folder_name: &'a str,
+    pub space_id: &'a i32,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "asset_contents"]
+#[belongs_to(Asset)]
+pub struct AssetContent {
+    pub id: i32,
+    pub file_content: String,
+    pub asset_id: i32,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "asset_contents"]
+pub struct NewAssetContent<'a> {
+    pub file_content: &'a str,
+    pub asset_id: &'a i32,
+    pub created_at: chrono::NaiveDateTime,
+}

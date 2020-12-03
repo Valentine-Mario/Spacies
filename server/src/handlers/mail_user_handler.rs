@@ -2,6 +2,7 @@ use crate::auth;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
+use crate::helpers::{email, email_template};
 use crate::model::{MailList, NewUserMail, Space, SpaceUser, User, UserMail};
 use crate::schema::maillists::dsl::*;
 use crate::schema::spaces::dsl::*;
@@ -20,7 +21,6 @@ use diesel::prelude::*;
 
 //http calls
 
-
 pub async fn add_user_folder(
     db: web::Data<Pool>,
     auth: BearerAuth,
@@ -30,12 +30,12 @@ pub async fn add_user_folder(
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(
-                    web::block(move || add_user_folder_db(db, auth.token().to_string(), folder, item))
-                        .await
-                        .map(|response| HttpResponse::Ok().json(response))
-                        .map_err(|_| HttpResponse::InternalServerError())?,
-                )
+                Ok(web::block(move || {
+                    add_user_folder_db(db, auth.token().to_string(), folder, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| HttpResponse::InternalServerError())?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -49,17 +49,16 @@ pub async fn remove_user_folder(
     auth: BearerAuth,
     folder: web::Path<AddUserToFolderPath>,
     item: web::Json<DeleteMailList>,
-)
--> Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(
-                    web::block(move || remove_user_folder_db(db, auth.token().to_string(), folder, item))
-                        .await
-                        .map(|response| HttpResponse::Ok().json(response))
-                        .map_err(|_| HttpResponse::InternalServerError())?,
-                )
+                Ok(web::block(move || {
+                    remove_user_folder_db(db, auth.token().to_string(), folder, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| HttpResponse::InternalServerError())?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -68,15 +67,56 @@ pub async fn remove_user_folder(
     }
 }
 
+pub async fn send_mail_to_folder(
+    db: web::Data<Pool>,
+    folder_id: web::Path<IdPathInfo>,
+    item: web::Json<SendMail>,
+) -> Result<HttpResponse, Error> {
+    Ok(
+        web::block(move || send_mail_to_folder_db(db, folder_id, item))
+            .await
+            .map(|response| HttpResponse::Ok().json(response))
+            .map_err(|_| {
+                HttpResponse::Ok().json(Response::new(false, "error sending email".to_string()))
+            })?,
+    )
+}
 
 //db calls
+fn send_mail_to_folder_db(
+    db: web::Data<Pool>,
+    folder_id: web::Path<IdPathInfo>,
+    item: web::Json<SendMail>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+
+    let mail_list: MailList = maillists.find(folder_id.id).first::<MailList>(&conn)?;
+
+    let user_mail: Vec<(UserMail, User)> = UserMail::belonging_to(&mail_list)
+        .inner_join(users)
+        .load::<(UserMail, User)>(&conn)?;
+
+    for send_user in user_mail.iter() {
+        let template = email_template::notify_folder(&mail_list.folder_name, &item.body);
+        email::send_email(
+            &send_user.1.email,
+            &send_user.1.username,
+            &item.title,
+            &template,
+        );
+    }
+    Ok(Response::new(
+        true,
+        "Email sent to all members successfully".to_string(),
+    ))
+}
+
 fn remove_user_folder_db(
     db: web::Data<Pool>,
     token: String,
     folder: web::Path<AddUserToFolderPath>,
     item: web::Json<DeleteMailList>,
-)
--> Result<Response<String>, diesel::result::Error>{
+) -> Result<Response<String>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -100,13 +140,15 @@ fn remove_user_folder_db(
     }
     let folder: MailList = maillists.find(folder.id).first::<MailList>(&conn)?;
 
-    let _count = delete(usermails
-        .filter(mail_list_id.eq(folder.id))
-        .filter(mail_user_id.eq(&item.id))).execute(&conn)?;
+    let _count = delete(
+        usermails
+            .filter(mail_list_id.eq(folder.id))
+            .filter(mail_user_id.eq(&item.id)),
+    )
+    .execute(&conn)?;
 
     Ok(Response::new(true, "user removed successfully".to_string()))
 }
-
 
 fn add_user_folder_db(
     db: web::Data<Pool>,
