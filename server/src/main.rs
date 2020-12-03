@@ -155,10 +155,26 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/assetfolder")
-                .route("/get/{info}", web::get().to(asset_handler::get_asset_folder))
-                .route("/search/{info}/{name}", web::get().to(asset_handler::search_asset_folder))
-                .route("/add/{info}", web::post().to(asset_handler::create_asset_folder))
-                .route("/update/{info}/{id}", web::post().to(asset_handler::update_folder_name))
+                    .route(
+                        "/get/{info}",
+                        web::get().to(asset_handler::get_asset_folder),
+                    )
+                    .route(
+                        "/search/{info}/{name}",
+                        web::get().to(asset_handler::search_asset_folder),
+                    )
+                    .route(
+                        "/delete/{info}/{id}",
+                        web::get().to(asset_handler::delete_asset_folder),
+                    )
+                    .route(
+                        "/add/{info}",
+                        web::post().to(asset_handler::create_asset_folder),
+                    )
+                    .route(
+                        "/update/{info}/{id}",
+                        web::post().to(asset_handler::update_folder_name),
+                    ),
             )
     });
 

@@ -4,6 +4,7 @@ use crate::diesel::RunQueryDsl;
 use crate::handlers::paginate::*;
 use crate::handlers::types::*;
 use crate::model::{Asset, NewAsset, Space, SpaceUser, User};
+use crate::schema::asset_contents::dsl::{asset_contents, asset_id};
 use crate::schema::assets::dsl::created_at as asset_create_at;
 use crate::schema::assets::dsl::space_id as asset_space_id;
 use crate::schema::assets::dsl::*;
@@ -24,20 +25,19 @@ pub async fn create_asset_folder(
     auth: BearerAuth,
     space_name: web::Path<PathInfo>,
     item: web::Json<AddAssetFolder>,
-)
--> Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(
-                    web::block(move || create_asset_folder_db(db, auth.token().to_string(), space_name, item))
-                        .await
-                        .map(|response| HttpResponse::Ok().json(response))
-                        .map_err(|_| {
-                            HttpResponse::Ok()
-                                .json(Response::new(false, "Error creating channel".to_string()))
-                        })?,
-                )
+                Ok(web::block(move || {
+                    create_asset_folder_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error creating folder".to_string()))
+                })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -46,26 +46,24 @@ pub async fn create_asset_folder(
     }
 }
 
-
 pub async fn update_folder_name(
     db: web::Data<Pool>,
     auth: BearerAuth,
     space_name: web::Path<AddUserToFolderPath>,
     item: web::Json<AddAssetFolder>,
-)
--> Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(
-                    web::block(move || update_folder_name_db(db, auth.token().to_string(), space_name, item))
-                        .await
-                        .map(|response| HttpResponse::Ok().json(response))
-                        .map_err(|_| {
-                            HttpResponse::Ok()
-                                .json(Response::new(false, "Error updating channel".to_string()))
-                        })?,
-                )
+                Ok(web::block(move || {
+                    update_folder_name_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error updating folder".to_string()))
+                })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -76,23 +74,22 @@ pub async fn update_folder_name(
 
 pub async fn get_asset_folder(
     db: web::Data<Pool>,
-    auth:BearerAuth,
+    auth: BearerAuth,
     space_name: web::Path<PathInfo>,
     item: web::Query<PaginateQuery>,
-)
--> Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(
-                    web::block(move || get_asset_folder_db(db, auth.token().to_string(), space_name, item))
-                        .await
-                        .map(|response| HttpResponse::Ok().json(response))
-                        .map_err(|_| {
-                            HttpResponse::Ok()
-                                .json(Response::new(false, "Error updating channel".to_string()))
-                        })?,
-                )
+                Ok(web::block(move || {
+                    get_asset_folder_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error getting folder".to_string()))
+                })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -103,23 +100,22 @@ pub async fn get_asset_folder(
 
 pub async fn search_asset_folder(
     db: web::Data<Pool>,
-    auth:BearerAuth,
+    auth: BearerAuth,
     space_name: web::Path<MailChannelPathInfo>,
     item: web::Query<PaginateQuery>,
-)
--> Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(
-                    web::block(move || search_asset_folder_db(db, auth.token().to_string(), space_name, item))
-                        .await
-                        .map(|response| HttpResponse::Ok().json(response))
-                        .map_err(|_| {
-                            HttpResponse::Ok()
-                                .json(Response::new(false, "Error searching channel".to_string()))
-                        })?,
-                )
+                Ok(web::block(move || {
+                    search_asset_folder_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error searching folder".to_string()))
+                })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -128,16 +124,77 @@ pub async fn search_asset_folder(
     }
 }
 
+pub async fn delete_asset_folder(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<AddUserToFolderPath>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    delete_asset_folder_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error deleting folder".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
 
 //db calls
+fn delete_asset_folder_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<AddUserToFolderPath>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+
+    if !spaces_user.admin_status {
+        return Ok(Response::new(
+            false,
+            "only admin allowed to delete asset folder".to_string(),
+        ));
+    }
+    let asset_folder: Asset = assets.find(&space_name.id).first::<Asset>(&conn)?;
+    //delete all asset content relationship
+    let _count = delete(asset_contents.filter(asset_id.eq(asset_folder.id))).execute(&conn)?;
+    //delet asset folder
+    let _count2 = delete(assets.find(asset_folder.id)).execute(&conn)?;
+    Ok(Response::new(
+        true,
+        "folder deleted successfully".to_string(),
+    ))
+}
+
 fn search_asset_folder_db(
     db: web::Data<Pool>,
     token: String,
     space_name: web::Path<MailChannelPathInfo>,
     item: web::Query<PaginateQuery>,
-)-> Result<Response<(Vec<Asset>, i64)>, diesel::result::Error>{
+) -> Result<Response<(Vec<Asset>, i64)>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
+    let mut return_list = vec![];
+    let mut total_val = 0;
     let user = users
         .find(decoded_token.parse::<i32>().unwrap())
         .first::<User>(&conn)?;
@@ -148,21 +205,25 @@ fn search_asset_folder_db(
         .filter(space_id.eq(space.id))
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
-      
-        let values: Vec<_> = space_name.name.split(' ').collect();
-        let b=format!("%{}%", values[0]);
-    let folders = assets
-        .filter(asset_space_id.eq(&space.id))
-        .filter(folder_name.ilike(&b))
-        .order(asset_create_at.desc())
-        .paginate(item.page)
-        .per_page(item.per_page)
-        .load::<(Asset, i64)>(&conn)?;
 
-        let total = folders.get(0).map(|x| x.1).unwrap_or(0);
-        let folder_list = folders.into_iter().map(|x| x.0).collect();
-       
-        Ok(Response::new(true, (folder_list,total)))
+    let values: Vec<_> = space_name.name.split(' ').collect();
+    for b in values.iter() {
+        let a = format!("%{}%", b);
+        let folders = assets
+            .filter(asset_space_id.eq(&space.id))
+            .filter(folder_name.ilike(&a))
+            .order(asset_create_at.desc())
+            .paginate(item.page)
+            .per_page(item.per_page)
+            .load::<(Asset, i64)>(&conn)?;
+        total_val += folders.get(0).map(|x| x.1).unwrap_or(0);
+        let list: Vec<Asset> = folders.into_iter().map(|x| x.0).collect();
+        for c in list {
+            return_list.push(c)
+        }
+    }
+
+    Ok(Response::new(true, (return_list, total_val)))
 }
 
 fn get_asset_folder_db(
@@ -193,8 +254,8 @@ fn get_asset_folder_db(
 
     let total = folders.get(0).map(|x| x.1).unwrap_or(0);
     let folder_list = folders.into_iter().map(|x| x.0).collect();
-   
-    Ok(Response::new(true, (folder_list,total)))
+
+    Ok(Response::new(true, (folder_list, total)))
 }
 
 fn update_folder_name_db(
