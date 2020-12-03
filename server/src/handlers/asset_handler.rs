@@ -193,8 +193,7 @@ fn search_asset_folder_db(
 ) -> Result<Response<(Vec<Asset>, i64)>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
-    let mut return_list = vec![];
-    let mut total_val = 0;
+   
     let user = users
         .find(decoded_token.parse::<i32>().unwrap())
         .first::<User>(&conn)?;
@@ -206,9 +205,8 @@ fn search_asset_folder_db(
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
 
-    let values: Vec<_> = space_name.name.split(' ').collect();
-    for b in values.iter() {
-        let a = format!("%{}%", b);
+   
+        let a = format!("%{}%", space_name.name);
         let folders = assets
             .filter(asset_space_id.eq(&space.id))
             .filter(folder_name.ilike(&a))
@@ -216,14 +214,11 @@ fn search_asset_folder_db(
             .paginate(item.page)
             .per_page(item.per_page)
             .load::<(Asset, i64)>(&conn)?;
-        total_val += folders.get(0).map(|x| x.1).unwrap_or(0);
+        let total = folders.get(0).map(|x| x.1).unwrap_or(0);
         let list: Vec<Asset> = folders.into_iter().map(|x| x.0).collect();
-        for c in list {
-            return_list.push(c)
-        }
-    }
+        
 
-    Ok(Response::new(true, (return_list, total_val)))
+    Ok(Response::new(true, (list, total)))
 }
 
 fn get_asset_folder_db(
