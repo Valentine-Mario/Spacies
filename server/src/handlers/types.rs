@@ -85,6 +85,11 @@ pub struct MailChannelPathInfo {
 }
 
 #[derive(Deserialize)]
+pub struct IdPathInfo {
+    pub id: i32,
+}
+
+#[derive(Deserialize)]
 pub struct AddUserToFolderPath {
     pub info: String,
     pub id: i32,
@@ -104,6 +109,13 @@ pub struct DeleteMailList {
 pub struct AddUserToFoldr {
     pub id: Vec<i32>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendMail {
+    pub title: String,
+    pub body: String,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }

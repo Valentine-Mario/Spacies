@@ -140,8 +140,18 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/usermail")
-                .route("/add/{info}/{id}", web::post().to(mail_user_handler::add_user_folder))
-                .route("/delete/{info}/{id}", web::post().to(mail_user_handler::remove_user_folder))
+                    .route(
+                        "/add/{info}/{id}",
+                        web::post().to(mail_user_handler::add_user_folder),
+                    )
+                    .route(
+                        "/send/{id}",
+                        web::post().to(mail_user_handler::send_mail_to_folder),
+                    )
+                    .route(
+                        "/delete/{info}/{id}",
+                        web::post().to(mail_user_handler::remove_user_folder),
+                    ),
             )
     });
 

@@ -43,3 +43,14 @@ pub fn added_user(name: &String) -> String {
     );
     template
 }
+
+pub fn notify_folder(title: &String, body: &String) -> String {
+    let template = format!(
+        "
+        <h3>Notification to {}</h3>
+        <p>{}</p>
+    ",
+        title, body
+    );
+    template
+}
