@@ -153,6 +153,13 @@ async fn main() -> std::io::Result<()> {
                         web::post().to(mail_user_handler::remove_user_folder),
                     ),
             )
+            .service(
+                web::scope("/assetfolder")
+                .route("/get/{info}", web::get().to(asset_handler::get_asset_folder))
+                .route("/search/{info}/{name}", web::get().to(asset_handler::search_asset_folder))
+                .route("/add/{info}", web::post().to(asset_handler::create_asset_folder))
+                .route("/update/{info}/{id}", web::post().to(asset_handler::update_folder_name))
+            )
     });
 
     server = match listenfd.take_tcp_listener(0)? {

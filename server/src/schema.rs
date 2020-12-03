@@ -1,4 +1,22 @@
 table! {
+    asset_contents (id) {
+        id -> Int4,
+        file_content -> Text,
+        asset_id -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    assets (id) {
+        id -> Int4,
+        folder_name -> Text,
+        space_id -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     maillists (id) {
         id -> Int4,
         folder_name -> Text,
@@ -53,6 +71,8 @@ table! {
     }
 }
 
+joinable!(asset_contents -> assets (asset_id));
+joinable!(assets -> spaces (space_id));
 joinable!(maillists -> spaces (space_id));
 joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
@@ -61,6 +81,8 @@ joinable!(usermails -> maillists (mail_list_id));
 joinable!(usermails -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
+    asset_contents,
+    assets,
     maillists,
     spaces,
     spaces_channel,

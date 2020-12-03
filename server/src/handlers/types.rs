@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUser {
     pub username: String,
@@ -16,6 +15,12 @@ pub struct Response<T> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryInfo {
     pub token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginateQuery {
+    pub page: i64,
+    pub per_page: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -114,6 +119,11 @@ pub struct AddUserToFoldr {
 pub struct SendMail {
     pub title: String,
     pub body: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AddAssetFolder {
+    pub folder_name: String,
 }
 
 impl<T> Response<T> {
