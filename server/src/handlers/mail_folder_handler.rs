@@ -50,14 +50,13 @@ pub async fn add_mail_folder(
 pub async fn delete_mail_folder(
     db: web::Data<Pool>,
     auth: BearerAuth,
-    space_name: web::Path<PathInfo>,
-    item: web::Json<DeleteMailList>,
+    space_name: web::Path<AddUserToFolderPath>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
                 Ok(web::block(move || {
-                    delete_mail_folder_db(db, auth.token().to_string(), space_name, item)
+                    delete_mail_folder_db(db, auth.token().to_string(), space_name)
                 })
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
@@ -144,8 +143,7 @@ fn get_space_mail_folder_db(
 fn delete_mail_folder_db(
     db: web::Data<Pool>,
     token: String,
-    space_name: web::Path<PathInfo>,
-    item: web::Json<DeleteMailList>,
+    space_name: web::Path<AddUserToFolderPath>,
 ) -> Result<Response<String>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
@@ -165,7 +163,7 @@ fn delete_mail_folder_db(
             "only admin allowed to delete mail folders".to_string(),
         ));
     };
-    let mail_folder: MailList = maillists.find(&item.id).first::<MailList>(&conn)?;
+    let mail_folder: MailList = maillists.find(&space_name.id).first::<MailList>(&conn)?;
     //delete all user email relationship
     let _count = delete(usermails.filter(mail_list_id.eq(mail_folder.id))).execute(&conn)?;
     //delet mail folder

@@ -69,26 +69,105 @@ pub async fn remove_user_folder(
 
 pub async fn send_mail_to_folder(
     db: web::Data<Pool>,
-    folder_id: web::Path<IdPathInfo>,
+    folder_id: web::Path<AddUserToFolderPath>,
+    item: web::Json<SendMail>,
+    auth: BearerAuth,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    send_mail_to_folder_db(db, folder_id, auth.token().to_string(), item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| HttpResponse::InternalServerError())?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn send_email_to_general(
+    db: web::Data<Pool>,
+    space_name: web::Path<PathInfo>,
+    auth: BearerAuth,
     item: web::Json<SendMail>,
 ) -> Result<HttpResponse, Error> {
-    Ok(
-        web::block(move || send_mail_to_folder_db(db, folder_id, item))
-            .await
-            .map(|response| HttpResponse::Ok().json(response))
-            .map_err(|_| {
-                HttpResponse::Ok().json(Response::new(false, "error sending email".to_string()))
-            })?,
-    )
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    send_email_to_general_db(db, space_name, auth.token().to_string(), item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| HttpResponse::InternalServerError())?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
 }
 
 //db calls
-fn send_mail_to_folder_db(
+fn send_email_to_general_db(
     db: web::Data<Pool>,
-    folder_id: web::Path<IdPathInfo>,
+    space_name: web::Path<PathInfo>,
+    token: String,
     item: web::Json<SendMail>,
 ) -> Result<Response<String>, diesel::result::Error> {
     let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+
+    let space: Space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(space_user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+
+    let user_spaces: Vec<_> = SpaceUser::belonging_to(&space)
+        .inner_join(users)
+        .load::<(SpaceUser, User)>(&conn)?;
+    for a in user_spaces.iter() {
+        let template = email_template::notify_folder(&"General".to_string(), &item.body);
+        email::send_email(&a.1.email, &a.1.username, &item.title, &template);
+    }
+    Ok(Response::new(
+        true,
+        "Email sent successfully to all members".to_string(),
+    ))
+}
+
+fn send_mail_to_folder_db(
+    db: web::Data<Pool>,
+    folder_id: web::Path<AddUserToFolderPath>,
+    token: String,
+    item: web::Json<SendMail>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+
+    let space: Space = spaces
+        .filter(spaces_name.ilike(&folder_id.info))
+        .first::<Space>(&conn)?;
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(space_user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
 
     let mail_list: MailList = maillists.find(folder_id.id).first::<MailList>(&conn)?;
 

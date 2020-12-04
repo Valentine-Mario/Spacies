@@ -2,6 +2,7 @@ table! {
     asset_contents (id) {
         id -> Int4,
         file_content -> Text,
+        file_type -> Text,
         asset_id -> Int4,
         created_at -> Timestamp,
     }

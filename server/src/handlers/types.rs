@@ -100,6 +100,13 @@ pub struct AddUserToFolderPath {
     pub id: i32,
 }
 
+#[derive(Deserialize)]
+pub struct AddFileContent {
+    pub info: String,
+    pub id: i32,
+    pub file_type: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateMailList {
     pub folder_name: String,
