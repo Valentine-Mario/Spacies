@@ -163,17 +163,11 @@ fn delete_asset_folder_db(
     let space = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
-    let spaces_user: SpaceUser = spaces_users
+    let _spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
 
-    if !spaces_user.admin_status {
-        return Ok(Response::new(
-            false,
-            "only admin allowed to delete asset folder".to_string(),
-        ));
-    }
     let asset_folder: Asset = assets.find(&space_name.id).first::<Asset>(&conn)?;
     //delete all asset content relationship
     let _count = delete(asset_contents.filter(asset_id.eq(asset_folder.id))).execute(&conn)?;
@@ -193,7 +187,7 @@ fn search_asset_folder_db(
 ) -> Result<Response<(Vec<Asset>, i64)>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
-   
+
     let user = users
         .find(decoded_token.parse::<i32>().unwrap())
         .first::<User>(&conn)?;
@@ -205,18 +199,16 @@ fn search_asset_folder_db(
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
 
-   
-        let a = format!("%{}%", space_name.name);
-        let folders = assets
-            .filter(asset_space_id.eq(&space.id))
-            .filter(folder_name.ilike(&a))
-            .order(asset_create_at.desc())
-            .paginate(item.page)
-            .per_page(item.per_page)
-            .load::<(Asset, i64)>(&conn)?;
-        let total = folders.get(0).map(|x| x.1).unwrap_or(0);
-        let list: Vec<Asset> = folders.into_iter().map(|x| x.0).collect();
-        
+    let a = format!("%{}%", space_name.name);
+    let folders = assets
+        .filter(asset_space_id.eq(&space.id))
+        .filter(folder_name.ilike(&a))
+        .order(asset_create_at.desc())
+        .paginate(item.page)
+        .per_page(item.per_page)
+        .load::<(Asset, i64)>(&conn)?;
+    let total = folders.get(0).map(|x| x.1).unwrap_or(0);
+    let list: Vec<Asset> = folders.into_iter().map(|x| x.0).collect();
 
     Ok(Response::new(true, (list, total)))
 }
@@ -267,17 +259,10 @@ fn update_folder_name_db(
     let space = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
-    let spaces_user: SpaceUser = spaces_users
+    let _spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
-
-    if !spaces_user.admin_status {
-        return Ok(Response::new(
-            false,
-            "only admin allowed to update asset folder".to_string(),
-        ));
-    }
 
     let folders: Vec<String> = assets
         .filter(asset_space_id.eq(&space.id))
@@ -292,7 +277,7 @@ fn update_folder_name_db(
     };
 
     let _asset_details_update = diesel::update(assets.find(space_name.id))
-        .set(folder_name.eq(&item.folder_name.to_lowercase()))
+        .set(folder_name.eq(&item.folder_name))
         .execute(&conn)?;
 
     Ok(Response::new(
@@ -315,17 +300,11 @@ fn create_asset_folder_db(
     let space = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
-    let spaces_user: SpaceUser = spaces_users
+    let _spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
 
-    if !spaces_user.admin_status {
-        return Ok(Response::new(
-            false,
-            "only admin allowed to add asset folder".to_string(),
-        ));
-    }
     let folders: Vec<String> = assets
         .filter(asset_space_id.eq(&space.id))
         .select(folder_name)
@@ -339,7 +318,7 @@ fn create_asset_folder_db(
     };
 
     let new_folder = NewAsset {
-        folder_name: &item.folder_name.to_lowercase(),
+        folder_name: &item.folder_name,
         space_id: &space.id,
         created_at: chrono::Local::now().naive_local(),
     };

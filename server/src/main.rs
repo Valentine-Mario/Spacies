@@ -130,12 +130,12 @@ async fn main() -> std::io::Result<()> {
                         web::get().to(mail_folder_handler::get_mail_folder_details),
                     )
                     .route(
-                        "/add/{info}",
-                        web::post().to(mail_folder_handler::add_mail_folder),
+                        "/delete/{info}/{id}",
+                        web::get().to(mail_folder_handler::delete_mail_folder),
                     )
                     .route(
-                        "/delete/{info}",
-                        web::post().to(mail_folder_handler::delete_mail_folder),
+                        "/add/{info}",
+                        web::post().to(mail_folder_handler::add_mail_folder),
                     ),
             )
             .service(
@@ -145,8 +145,12 @@ async fn main() -> std::io::Result<()> {
                         web::post().to(mail_user_handler::add_user_folder),
                     )
                     .route(
-                        "/send/{id}",
+                        "/send/{info}/{id}",
                         web::post().to(mail_user_handler::send_mail_to_folder),
+                    )
+                    .route(
+                        "/general/{info}",
+                        web::post().to(mail_user_handler::send_email_to_general),
                     )
                     .route(
                         "/delete/{info}/{id}",
@@ -174,6 +178,21 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/update/{info}/{id}",
                         web::post().to(asset_handler::update_folder_name),
+                    ),
+            )
+            .service(
+                web::scope("/asset")
+                    .route(
+                        "/get/{info}/{name}",
+                        web::get().to(asset_content_handler::get_files),
+                    )
+                    .route(
+                        "/delete/{info}/{id}",
+                        web::get().to(asset_content_handler::delete_upload),
+                    )
+                    .route(
+                        "/add/{info}/{id}/{file_type}",
+                        web::post().to(asset_content_handler::upload_file_db),
                     ),
             )
     });

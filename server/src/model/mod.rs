@@ -133,6 +133,7 @@ pub struct NewAsset<'a> {
 pub struct AssetContent {
     pub id: i32,
     pub file_content: String,
+    pub file_type: String,
     pub asset_id: i32,
     pub created_at: chrono::NaiveDateTime,
 }
@@ -141,6 +142,7 @@ pub struct AssetContent {
 #[table_name = "asset_contents"]
 pub struct NewAssetContent<'a> {
     pub file_content: &'a str,
+    pub file_type: &'a str,
     pub asset_id: &'a i32,
     pub created_at: chrono::NaiveDateTime,
 }
