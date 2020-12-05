@@ -1,12 +1,15 @@
 #[macro_use]
 extern crate diesel;
-
+use crate::handlers::*;
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use listenfd::ListenFd;
 use std::env;
+
+use crate::helpers::schedule::Scheduler;
+use actix::prelude::*;
 
 pub mod auth;
 pub mod handlers;
@@ -17,7 +20,6 @@ mod schema;
 //connection pool type
 pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
-use crate::handlers::*;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -33,6 +35,8 @@ async fn main() -> std::io::Result<()> {
 
     let host = env::var("HOST").expect("Please set host in .env");
     let port = env::var("PORT").expect("Please set port in .env");
+
+    Scheduler.start();
 
     println!("running on host {} on port {}", host, port);
     let mut listenfd = ListenFd::from_env();
