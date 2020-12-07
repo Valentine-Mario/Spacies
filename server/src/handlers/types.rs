@@ -133,6 +133,14 @@ pub struct AddAssetFolder {
     pub folder_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AddEvent {
+    pub event_name: String,
+    pub event_description: String,
+    pub year: i32,
+    pub event_date: Vec<u32>,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }

@@ -1,6 +1,7 @@
 pub mod asset_content_handler;
 pub mod asset_handler;
 pub mod channel_handler;
+pub mod event_handler;
 pub mod mail_folder_handler;
 pub mod mail_user_handler;
 pub mod paginate;
