@@ -1,6 +1,7 @@
 use crate::auth;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
+use crate::handlers::paginate::*;
 use crate::handlers::types::*;
 use crate::model::{Event, NewEvent, Space, SpaceUser, User};
 use crate::schema::events::dsl::space_id as event_space_id;
@@ -44,16 +45,233 @@ pub async fn create_event(
     }
 }
 
-//db calls
-fn get_event_details_db() {}
+pub async fn get_events(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<PathInfo>,
+    item: web::Query<PaginateQuery>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_events_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok().json(Response::new(false, "Error getting event".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
 
-fn delete_event_db() {}
+pub async fn edit_event(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<AddUserToFolderPath>,
+    item: web::Json<EditEvent>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    edit_event_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error updating event".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn get_event_details(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_event_details_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error updating event".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn delete_event(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<AddUserToFolderPath>
+)
+-> Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    delete_event_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error updating event".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+//db calls
+fn get_event_details_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<ChannelPathInfo>,
+) -> Result<Response<Event>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_user_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+    let space_event: Event = events
+        .filter(event_space_id.eq(&space.id))
+        .filter(event_name.ilike(&space_name.channel))
+        .first::<Event>(&conn)?;
+
+    Ok(Response::new(true, space_event))
+}
+
+fn delete_event_db( 
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<AddUserToFolderPath>)
+->Result<Response<String>, diesel::result::Error>{
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_user_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+    let _count = delete(events.find(space_name.id)).execute(&conn)?;
+    
+    Ok(Response::new(true, "Event deleted successfully".to_string()))
+}
 
 fn search_event_db() {}
 
-fn edit_event_db() {}
+fn edit_event_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<AddUserToFolderPath>,
+    item: web::Json<EditEvent>,
+) -> Result<Response<String>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_user_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
 
-fn get_events_db() {}
+    let space_event: Vec<String> = events
+        .filter(event_space_id.eq(&space.id))
+        .select(event_name)
+        .load::<String>(&conn)?;
+    if space_event
+        .iter()
+        .any(|i| &i.to_lowercase() == &item.event_name.to_lowercase())
+    {
+        return Ok(Response::new(
+            false,
+            "A similar event name already exist for this space".to_string(),
+        ));
+    }
+
+    let _space_details = diesel::update(events.find(space_name.id))
+        .set((
+            event_name.eq(&item.event_name),
+            event_description.eq(&item.event_description),
+        ))
+        .execute(&conn)?;
+
+    Ok(Response::new(
+        true,
+        "Event updated successfully".to_string(),
+    ))
+}
+
+fn get_events_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<PathInfo>,
+    item: web::Query<PaginateQuery>,
+) -> Result<Response<(i64, Vec<Event>)>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_user_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+    let space_event = events
+        .filter(event_space_id.eq(&space.id))
+        .order(event_date.desc())
+        .paginate(item.page)
+        .per_page(item.per_page)
+        .load::<(Event, i64)>(&conn)?;
+    let total = space_event.get(0).map(|x| x.1).unwrap_or(0);
+    let list: Vec<Event> = space_event.into_iter().map(|x| x.0).collect();
+
+    Ok(Response::new(true, (total, list)))
+}
 
 fn create_event_db(
     db: web::Data<Pool>,
@@ -84,7 +302,7 @@ fn create_event_db(
     {
         return Ok(Response::new(
             false,
-            "A similar event name alreadt exist for this space".to_string(),
+            "A similar event name already exist for this space".to_string(),
         ));
     }
     let dt: NaiveDateTime =
@@ -101,6 +319,6 @@ fn create_event_db(
 
     Ok(Response::new(
         true,
-        "Event created successfully".to_string(),
+        "Event created successfully. Space members would be notified on set date".to_string(),
     ))
 }

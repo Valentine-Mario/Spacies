@@ -141,6 +141,12 @@ pub struct AddEvent {
     pub event_date: Vec<u32>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EditEvent {
+    pub event_name: String,
+    pub event_description: String,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }

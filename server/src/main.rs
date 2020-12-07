@@ -206,7 +206,20 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/event")
-                    .route("/add/{info}", web::post().to(event_handler::create_event)),
+                    .route("/get/{info}", web::get().to(event_handler::get_events))
+                    .route(
+                        "/getdetails/{info}/{channel}",
+                        web::get().to(event_handler::get_event_details),
+                    )
+                    .route(
+                        "/delete/{info}/{id}",
+                        web::get().to(event_handler::delete_event)
+                    )
+                    .route("/add/{info}", web::post().to(event_handler::create_event))
+                    .route(
+                        "/update/{info}/{id}",
+                        web::post().to(event_handler::edit_event),
+                    ),
             )
     });
 
