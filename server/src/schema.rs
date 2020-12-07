@@ -18,6 +18,17 @@ table! {
 }
 
 table! {
+    events (id) {
+        id -> Int4,
+        event_name -> Text,
+        event_description -> Text,
+        reminded -> Bool,
+        event_date -> Timestamp,
+        space_id -> Int4,
+    }
+}
+
+table! {
     maillists (id) {
         id -> Int4,
         folder_name -> Text,
@@ -74,6 +85,7 @@ table! {
 
 joinable!(asset_contents -> assets (asset_id));
 joinable!(assets -> spaces (space_id));
+joinable!(events -> spaces (space_id));
 joinable!(maillists -> spaces (space_id));
 joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
@@ -84,6 +96,7 @@ joinable!(usermails -> users (user_id));
 allow_tables_to_appear_in_same_query!(
     asset_contents,
     assets,
+    events,
     maillists,
     spaces,
     spaces_channel,

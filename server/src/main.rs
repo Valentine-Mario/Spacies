@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
     let host = env::var("HOST").expect("Please set host in .env");
     let port = env::var("PORT").expect("Please set port in .env");
 
+    //start cron jobs
     Scheduler.start();
 
     println!("running on host {} on port {}", host, port);
@@ -113,6 +114,10 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/delete/{info}/{channel}",
                         web::get().to(channel_handler::delete_channel),
+                    )
+                    .route(
+                        "/getdetails/{info}/{channel}",
+                        web::get().to(channel_handler::get_channel_details),
                     )
                     .route(
                         "/add/{info}",
@@ -197,6 +202,23 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/add/{info}/{id}/{file_type}",
                         web::post().to(asset_content_handler::upload_file_db),
+                    ),
+            )
+            .service(
+                web::scope("/event")
+                    .route("/get/{info}", web::get().to(event_handler::get_events))
+                    .route(
+                        "/getdetails/{info}/{channel}",
+                        web::get().to(event_handler::get_event_details),
+                    )
+                    .route(
+                        "/delete/{info}/{id}",
+                        web::get().to(event_handler::delete_event)
+                    )
+                    .route("/add/{info}", web::post().to(event_handler::create_event))
+                    .route(
+                        "/update/{info}/{id}",
+                        web::post().to(event_handler::edit_event),
                     ),
             )
     });

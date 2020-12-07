@@ -1,6 +1,5 @@
 use crate::schema::*;
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
 #[table_name = "users"]
 pub struct User {
@@ -145,4 +144,26 @@ pub struct NewAssetContent<'a> {
     pub file_type: &'a str,
     pub asset_id: &'a i32,
     pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "events"]
+#[belongs_to(Space)]
+pub struct Event {
+    pub id: i32,
+    pub event_name: String,
+    pub event_description: String,
+    pub reminded: bool,
+    pub event_date: chrono::NaiveDateTime,
+    pub space_id: i32,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "events"]
+pub struct NewEvent<'a> {
+    pub event_name: &'a str,
+    pub event_description: &'a str,
+    pub reminded: &'a bool,
+    pub event_date: chrono::NaiveDateTime,
+    pub space_id: &'a i32,
 }

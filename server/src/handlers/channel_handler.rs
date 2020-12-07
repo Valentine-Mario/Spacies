@@ -108,6 +108,31 @@ pub async fn edit_channel_name(
     }
 }
 
+pub async fn get_channel_details(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_channel_details_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error getting channel".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
 //db calls
 fn create_new_channel_db(
     db: web::Data<Pool>,
@@ -197,6 +222,30 @@ fn get_channels_in_space_db(
         .filter(channel_space_id.eq(&space.id))
         .load::<SpaceChannel>(&conn)?;
     Ok(Response::new(true, channels))
+}
+
+fn get_channel_details_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<ChannelPathInfo>,
+) -> Result<Response<SpaceChannel>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+    let channel_details = spaces_channel
+        .filter(channel_space_id.eq(&space.id))
+        .filter(channel_name.ilike(&space_name.channel))
+        .first::<SpaceChannel>(&conn)?;
+    Ok(Response::new(true, channel_details))
 }
 
 fn edit_channel_name_db(
