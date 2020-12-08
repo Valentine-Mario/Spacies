@@ -170,6 +170,10 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/delete/{info}/{id}",
                 web::get().to(event_handler::delete_event),
             )
+            .route(
+                "/search/{info}/{name}",
+                web::get().to(event_handler::search_event),
+            )
             .route("/add/{info}", web::post().to(event_handler::create_event))
             .route(
                 "/update/{info}/{id}",
