@@ -7,7 +7,7 @@ pub struct Message {
     user: String,
 }
 
-pub async fn pusher_message<V>(channel: &String, event: &String, message: &Message) {
+pub async fn pusher_message(channel: &String, event: &String, message: &Message) {
     let pusher_url = format!(
         "http://{}:{}@api-{}.pusher.com/apps/{}",
         std::env::var("PUSHER_KEY").expect("PUSHER KEY not set"),
