@@ -124,21 +124,20 @@ pub async fn get_event_details(
 pub async fn delete_event(
     db: web::Data<Pool>,
     auth: BearerAuth,
-    space_name: web::Path<AddUserToFolderPath>
-)
--> Result<HttpResponse, Error>{
+    space_name: web::Path<AddUserToFolderPath>,
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(web::block(move || {
-                    delete_event_db(db, auth.token().to_string(), space_name)
-                })
-                .await
-                .map(|response| HttpResponse::Ok().json(response))
-                .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error updating event".to_string()))
-                })?)
+                Ok(
+                    web::block(move || delete_event_db(db, auth.token().to_string(), space_name))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok()
+                                .json(Response::new(false, "Error updating event".to_string()))
+                        })?,
+                )
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -173,11 +172,11 @@ fn get_event_details_db(
     Ok(Response::new(true, space_event))
 }
 
-fn delete_event_db( 
+fn delete_event_db(
     db: web::Data<Pool>,
     token: String,
-    space_name: web::Path<AddUserToFolderPath>)
-->Result<Response<String>, diesel::result::Error>{
+    space_name: web::Path<AddUserToFolderPath>,
+) -> Result<Response<String>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -191,8 +190,11 @@ fn delete_event_db(
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
     let _count = delete(events.find(space_name.id)).execute(&conn)?;
-    
-    Ok(Response::new(true, "Event deleted successfully".to_string()))
+
+    Ok(Response::new(
+        true,
+        "Event deleted successfully".to_string(),
+    ))
 }
 
 fn search_event_db() {}
