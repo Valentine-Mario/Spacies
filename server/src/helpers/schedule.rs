@@ -1,13 +1,13 @@
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
-use crate::model::{Space, SpaceUser, User};
-use crate::schema::events::dsl::space_id as event_space_id;
+use crate::helpers::{email, email_template};
+use crate::model::{Event, Space, SpaceUser, User};
 use crate::schema::events::dsl::*;
 use crate::schema::spaces::dsl::*;
-use crate::schema::spaces_users::dsl::*;
 use crate::schema::users::dsl::*;
 use crate::Pool;
 use actix::prelude::*;
+use chrono::prelude::*;
 use chrono::Local;
 use cron::Schedule;
 use std::{str::FromStr, time::Duration};
@@ -63,8 +63,55 @@ pub fn duration_until_next() -> Duration {
     Duration::from_millis(duration_until.num_milliseconds() as u64)
 }
 
+//cron job to remin space members of any set event
 fn run_job(db: Pool) {
     let conn = db.get().unwrap();
-    let all_undone_events: Vec<Space> = spaces.load::<Space>(&conn).unwrap();
-    println!("{:?}", all_undone_events);
+    println!("Running daily job...");
+    //get all pending events
+    let items: Vec<Event> = events
+        .filter(reminded.eq(false))
+        .load::<Event>(&conn)
+        .unwrap();
+
+    //get today's date
+    let today: DateTime<Local> = Local::now();
+
+    for val in items.iter() {
+        //get date of the current event
+        let set_event_date: NaiveDateTime = val.event_date;
+        if (today.year(), today.month(), today.day())
+            == (
+                set_event_date.year(),
+                set_event_date.month(),
+                set_event_date.day(),
+            )
+        {
+            let _update_event = diesel::update(events.find(val.id))
+                .set(reminded.eq(&true))
+                .execute(&conn);
+
+            //get all users in event channel
+            let space = spaces.find(val.space_id).first::<Space>(&conn).unwrap();
+            let user_spaces: Vec<_> = SpaceUser::belonging_to(&space)
+                .inner_join(users)
+                .load::<(SpaceUser, User)>(&conn)
+                .unwrap();
+
+            //send email to all membrs
+            let template = email_template::send_reminder(
+                &val.event_name,
+                &space.spaces_name,
+                &val.event_description,
+            );
+
+            for a in user_spaces.iter() {
+                email::send_email(
+                    &a.1.email,
+                    &a.1.username,
+                    &"Event reminder".to_string(),
+                    &template,
+                );
+            }
+        }
+    }
 }

@@ -110,8 +110,7 @@ pub async fn get_event_details(
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
                 .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error updating event".to_string()))
+                    HttpResponse::Ok().json(Response::new(false, "Error getting event".to_string()))
                 })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
@@ -135,9 +134,34 @@ pub async fn delete_event(
                         .map(|response| HttpResponse::Ok().json(response))
                         .map_err(|_| {
                             HttpResponse::Ok()
-                                .json(Response::new(false, "Error updating event".to_string()))
+                                .json(Response::new(false, "Error deleting event".to_string()))
                         })?,
                 )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn search_event(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<MailChannelPathInfo>,
+    item: web::Query<PaginateQuery>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    search_event_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok().json(Response::new(false, "Error getting event".to_string()))
+                })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -197,7 +221,37 @@ fn delete_event_db(
     ))
 }
 
-fn search_event_db() {}
+fn search_event_db(
+    db: web::Data<Pool>,
+    token: String,
+    space_name: web::Path<MailChannelPathInfo>,
+    item: web::Query<PaginateQuery>,
+) -> Result<Response<(i64, Vec<Event>)>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let user = users
+        .find(decoded_token.parse::<i32>().unwrap())
+        .first::<User>(&conn)?;
+    let space = spaces
+        .filter(spaces_name.ilike(&space_name.info))
+        .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_user_id.eq(space.id))
+        .filter(user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
+
+    let a = format!("%{}%", space_name.name);
+    let searched_events = events
+        .filter(event_space_id.eq(&space.id))
+        .filter(event_name.ilike(&a).or(event_description.ilike(&a)))
+        .order(event_date.desc())
+        .paginate(item.page)
+        .per_page(item.per_page)
+        .load::<(Event, i64)>(&conn)?;
+    let total = searched_events.get(0).map(|x| x.1).unwrap_or(0);
+    let list: Vec<Event> = searched_events.into_iter().map(|x| x.0).collect();
+    Ok(Response::new(true, (total, list)))
+}
 
 fn edit_event_db(
     db: web::Data<Pool>,

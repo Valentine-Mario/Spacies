@@ -54,3 +54,16 @@ pub fn notify_folder(title: &String, body: &String) -> String {
     );
     template
 }
+
+pub fn send_reminder(title: &String, name: &String, body: &String) -> String {
+    let template = format!(
+        "
+        <h3>Reminder for {}</h3>
+
+        <p>This is to remind membrs of {} Space of the follwing event today:</p>
+       <p> {}</p>
+        ",
+        title, name, body
+    );
+    template
+}
