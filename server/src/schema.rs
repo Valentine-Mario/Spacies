@@ -37,6 +37,15 @@ table! {
 }
 
 table! {
+    projects (id) {
+        id -> Int4,
+        project_name -> Text,
+        space_id -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     spaces (id) {
         id -> Int4,
         spaces_name -> Text,
@@ -64,6 +73,17 @@ table! {
 }
 
 table! {
+    tasks (id) {
+        id -> Int4,
+        task_name -> Text,
+        task_description -> Text,
+        project_id -> Int4,
+        task_status -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     usermails (id) {
         id -> Int4,
         mail_list_id -> Int4,
@@ -83,13 +103,25 @@ table! {
     }
 }
 
+table! {
+    user_tasks (id) {
+        id -> Int4,
+        user_id -> Int4,
+        task_id -> Int4,
+    }
+}
+
 joinable!(asset_contents -> assets (asset_id));
 joinable!(assets -> spaces (space_id));
 joinable!(events -> spaces (space_id));
 joinable!(maillists -> spaces (space_id));
+joinable!(projects -> spaces (space_id));
 joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
+joinable!(tasks -> projects (project_id));
+joinable!(user_tasks -> tasks (task_id));
+joinable!(user_tasks -> users (user_id));
 joinable!(usermails -> maillists (mail_list_id));
 joinable!(usermails -> users (user_id));
 
@@ -98,9 +130,12 @@ allow_tables_to_appear_in_same_query!(
     assets,
     events,
     maillists,
+    projects,
     spaces,
     spaces_channel,
     spaces_users,
+    tasks,
     usermails,
     users,
+    user_tasks,
 );

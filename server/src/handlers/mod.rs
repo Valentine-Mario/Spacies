@@ -8,3 +8,6 @@ pub mod paginate;
 pub mod space_handler;
 pub mod types;
 pub mod user_handler;
+pub mod project_handler;
+pub mod task_handler;
+pub mod user_task_handler;
