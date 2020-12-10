@@ -147,6 +147,11 @@ pub struct EditEvent {
     pub event_description: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AddProject {
+    pub project_name: String,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }

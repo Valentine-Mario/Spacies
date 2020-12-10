@@ -171,25 +171,25 @@ pub struct NewEvent<'a> {
 #[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
 #[table_name = "projects"]
 #[belongs_to(Space)]
-pub struct Project{
+pub struct Project {
     pub id: i32,
     pub project_name: String,
-    pub space_id:i32,
-    pub created_at: chrono::NaiveDateTime
+    pub space_id: i32,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, Debug)]
 #[table_name = "projects"]
-pub struct NewProject<'a>{
-    pub project_name:&'a str,
-    pub space_id:&'a i32,
-    pub created_at:chrono::NaiveDateTime
+pub struct NewProject<'a> {
+    pub project_name: &'a str,
+    pub space_id: &'a i32,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
 #[table_name = "tasks"]
 #[belongs_to(Project)]
-pub struct Task{
+pub struct Task {
     pub id: i32,
     pub task_name: String,
     pub task_description: String,
@@ -200,19 +200,19 @@ pub struct Task{
 
 #[derive(Insertable, Debug)]
 #[table_name = "tasks"]
-pub struct NewTask<'a>{
-    pub task_name:&'a str,
-    pub task_description:&'a str,
-    pub project_id:&'a i32,
-    pub task_status:&'a str,
-    pub created_at: chrono::NaiveDateTime
+pub struct NewTask<'a> {
+    pub task_name: &'a str,
+    pub task_description: &'a str,
+    pub project_id: &'a i32,
+    pub task_status: &'a str,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
 #[table_name = "user_tasks"]
 #[belongs_to(Task)]
 #[belongs_to(User)]
-pub struct UserTask{
+pub struct UserTask {
     pub id: i32,
     pub user_id: i32,
     pub task_id: i32,
@@ -220,7 +220,7 @@ pub struct UserTask{
 
 #[derive(Insertable, Debug)]
 #[table_name = "user_tasks"]
-pub struct NewUserTask<'a>{
-    pub user_id:&'a i32,
-    pub task_id:&'a i32,
+pub struct NewUserTask<'a> {
+    pub user_id: &'a i32,
+    pub task_id: &'a i32,
 }
