@@ -179,5 +179,32 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/update/{info}/{id}",
                 web::post().to(event_handler::edit_event),
             ),
+    )
+    .service(
+        web::scope("/project")
+            .route(
+                "/get/{info}",
+                web::get().to(project_handler::get_all_projects),
+            )
+            .route(
+                "/getdetails/{info}/{channel}",
+                web::get().to(project_handler::get_project_details),
+            )
+            .route(
+                "/search/{info}/{name}",
+                web::get().to(project_handler::search_project),
+            )
+            .route(
+                "/delete/{info}/{id}",
+                web::get().to(project_handler::delete_project),
+            )
+            .route(
+                "/add/{info}",
+                web::post().to(project_handler::create_project),
+            )
+            .route(
+                "/edit/{info}/{id}",
+                web::post().to(project_handler::update_project),
+            ),
     );
 }
