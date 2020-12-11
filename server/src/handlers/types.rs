@@ -150,7 +150,6 @@ pub struct AddProject {
 pub struct AddTask {
     pub task_name: String,
     pub task_description: String,
-    pub project_id: i32,
     pub year: i32,
     pub due_date: Vec<u32>,
 }

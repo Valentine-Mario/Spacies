@@ -229,5 +229,16 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/updatestatus/{info}/{id}",
                 web::post().to(task_handler::update_task_status),
             ),
+    )
+    .service(
+        web::scope("/assign")
+            .route(
+                "/add/{info}/{id}",
+                web::post().to(user_task_handler::add_user_to_task),
+            )
+            .route(
+                "/delete/{info}/{id}",
+                web::post().to(user_task_handler::remove_user_from_task),
+            ),
     );
 }

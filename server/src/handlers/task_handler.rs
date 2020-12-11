@@ -187,7 +187,7 @@ fn create_task_db(
 
     Ok(OptionalResponse::new(
         true,
-        Some("Event created successfully. Space members would be notified on set date".to_string()),
+        Some("Task created successfully".to_string()),
         Some(project_task),
     ))
 }
@@ -286,7 +286,7 @@ fn get_task_in_project_db(
     db: web::Data<Pool>,
     token: String,
     space_name: web::Path<ChannelPathInfo>,
-) -> Result<Response<Vec<(UserTask, User, Task)>>, diesel::result::Error> {
+) -> Result<Response<(Vec<(UserTask, User)>, Vec<Task>)>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -304,15 +304,14 @@ fn get_task_in_project_db(
         .filter(project_name.ilike(&space_name.channel))
         .first::<Project>(&conn)?;
 
-    let project_task = tasks
+    let project_task: Vec<Task> = tasks
         .filter(task_project_id.eq(project_details.id))
         .load::<Task>(&conn)?;
 
     //get all task in this project and link users
     let project_tasks: Vec<_> = UserTask::belonging_to(&project_task)
         .inner_join(users)
-        .inner_join(tasks)
-        .load::<(UserTask, User, Task)>(&conn)?;
+        .load::<(UserTask, User)>(&conn)?;
 
-    Ok(Response::new(true, project_tasks))
+    Ok(Response::new(true, (project_tasks, project_task)))
 }
