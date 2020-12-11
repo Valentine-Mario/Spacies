@@ -139,7 +139,7 @@ fn create_new_channel_db(
     token: String,
     space_name: web::Path<PathInfo>,
     item: web::Json<ChannelField>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, SpaceChannel>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -161,9 +161,10 @@ fn create_new_channel_db(
         .iter()
         .any(|i| &i.to_lowercase() == &item.channel_name.to_lowercase())
     {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "Channel name already taken".to_string(),
+            Some("Channel name already taken".to_string()),
+            None,
         ));
     }
     //create channel
@@ -172,13 +173,14 @@ fn create_new_channel_db(
         channel_name: &item.channel_name,
     };
 
-    let _space_channel = insert_into(spaces_channel)
+    let space_channel: SpaceChannel = insert_into(spaces_channel)
         .values(&new_space_channel)
-        .execute(&conn)?;
+        .get_result(&conn)?;
 
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "New Channel created successfully".to_string(),
+        Some("New Channel created successfully".to_string()),
+        Some(space_channel),
     ))
 }
 

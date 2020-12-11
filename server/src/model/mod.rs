@@ -195,7 +195,7 @@ pub struct Task {
     pub task_description: String,
     pub project_id: i32,
     pub task_status: String,
-    pub created_at: chrono::NaiveDateTime,
+    pub due_date: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, Debug)]
@@ -205,7 +205,7 @@ pub struct NewTask<'a> {
     pub task_description: &'a str,
     pub project_id: &'a i32,
     pub task_status: &'a str,
-    pub created_at: chrono::NaiveDateTime,
+    pub due_date: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]

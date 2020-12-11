@@ -291,7 +291,7 @@ fn create_asset_folder_db(
     token: String,
     space_name: web::Path<PathInfo>,
     item: web::Json<AddAssetFolder>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, Asset>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -314,7 +314,11 @@ fn create_asset_folder_db(
         .iter()
         .any(|i| &i.to_lowercase() == &item.folder_name.to_lowercase())
     {
-        return Ok(Response::new(false, "Asset name already taken".to_string()));
+        return Ok(OptionalResponse::new(
+            false,
+            Some("Asset name already taken".to_string()),
+            None,
+        ));
     };
 
     let new_folder = NewAsset {
@@ -323,10 +327,11 @@ fn create_asset_folder_db(
         created_at: chrono::Local::now().naive_local(),
     };
 
-    let _asset_folder = insert_into(assets).values(&new_folder).execute(&conn)?;
+    let asset_folder: Asset = insert_into(assets).values(&new_folder).get_result(&conn)?;
 
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "asset folder created successfully".to_string(),
+        Some("Asset folder created successfully".to_string()),
+        Some(asset_folder),
     ))
 }

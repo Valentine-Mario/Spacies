@@ -79,7 +79,7 @@ table! {
         task_description -> Text,
         project_id -> Int4,
         task_status -> Text,
-        created_at -> Timestamp,
+        due_date -> Timestamp,
     }
 }
 

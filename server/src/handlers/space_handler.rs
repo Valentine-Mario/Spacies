@@ -756,7 +756,7 @@ fn add_space_db(
     db: web::Data<Pool>,
     item: web::Json<CreateSpace>,
     token: String,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, Space>, diesel::result::Error> {
     let decoded_token = auth::decode_token(&token);
     let conn = db.get().unwrap();
     //get user details
@@ -764,8 +764,9 @@ fn add_space_db(
         .find(decoded_token.parse::<i32>().unwrap())
         .first(&conn)?;
     if !user.verified {
-        return Ok(Response::new(false,
-                 "only verified users are allowed to add space. Click on the verification link sent to your email or request a new verification link".to_string()));
+        return Ok(OptionalResponse::new(false,
+                 Some("only verified users are allowed to add space. Click on the verification link sent to your email or request a new verification link".to_string()),
+                 None));
     }
     //add space
     let new_space = NewSpace {
@@ -779,9 +780,10 @@ fn add_space_db(
         .first::<Space>(&conn);
     match space_details {
         Ok(_space) => {
-            return Ok(Response::new(
+            return Ok(OptionalResponse::new(
                 false,
-                "space name is already taken. Please select a new name".to_string(),
+                Some("space name is already taken. Please select a new name".to_string()),
+                None,
             ))
         }
         Err(diesel::result::Error::NotFound) => {
@@ -806,11 +808,18 @@ fn add_space_db(
                 .values(&default_space_channel)
                 .execute(&conn)?;
 
-            return Ok(Response::new(
+            return Ok(OptionalResponse::new(
                 true,
-                "space created successfully".to_string(),
+                Some("space created successfully".to_string()),
+                Some(space),
             ));
         }
-        _ => return Ok(Response::new(false, "some error occured".to_string())),
+        _ => {
+            return Ok(OptionalResponse::new(
+                false,
+                Some("some error occured".to_string()),
+                None,
+            ))
+        }
     }
 }
