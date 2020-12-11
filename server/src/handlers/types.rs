@@ -7,12 +7,6 @@ pub struct CreateUser {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Response<T> {
-    pub success: bool,
-    pub message: T,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct QueryInfo {
     pub token: String,
 }
@@ -152,9 +146,32 @@ pub struct AddProject {
     pub project_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Response<T> {
+    pub success: bool,
+    pub message: T,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OptionalResponse<T, U> {
+    success: bool,
+    msg: Option<T>,
+    value: Option<U>,
+}
+
+impl<T, U> OptionalResponse<T, U> {
+    pub fn new(success: bool, msg: Option<T>, value: Option<U>) -> Self {
+        OptionalResponse {
+            success,
+            msg,
+            value,
+        }
     }
 }
 

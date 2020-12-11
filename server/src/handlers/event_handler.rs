@@ -304,7 +304,7 @@ fn get_events_db(
     token: String,
     space_name: web::Path<PathInfo>,
     item: web::Query<PaginateQuery>,
-) -> Result<Response<(i64, Vec<Event>)>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, (i64, Vec<Event>)>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -326,7 +326,11 @@ fn get_events_db(
     let total = space_event.get(0).map(|x| x.1).unwrap_or(0);
     let list: Vec<Event> = space_event.into_iter().map(|x| x.0).collect();
 
-    Ok(Response::new(true, (total, list)))
+    Ok(OptionalResponse::new(
+        true,
+        Some("Event gotten successfully".to_string()),
+        Some((total, list)),
+    ))
 }
 
 fn create_event_db(
@@ -334,7 +338,7 @@ fn create_event_db(
     token: String,
     space_name: web::Path<PathInfo>,
     item: web::Json<AddEvent>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, Event>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -356,9 +360,10 @@ fn create_event_db(
         .iter()
         .any(|i| &i.to_lowercase() == &item.event_name.to_lowercase())
     {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "A similar event name already exist for this space".to_string(),
+            Some("A similar event name already exist for this space".to_string()),
+            None,
         ));
     }
     let dt: NaiveDateTime =
@@ -371,10 +376,11 @@ fn create_event_db(
         space_id: &space.id,
     };
 
-    let _space_event = insert_into(events).values(&new_event).execute(&conn)?;
+    let space_event: Event = insert_into(events).values(&new_event).get_result(&conn)?;
 
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "Event created successfully. Space members would be notified on set date".to_string(),
+        Some("Event created successfully. Space members would be notified on set date".to_string()),
+        Some(space_event),
     ))
 }
