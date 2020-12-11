@@ -147,6 +147,25 @@ pub struct AddProject {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct AddTask {
+    pub task_name: String,
+    pub task_description: String,
+    pub year: i32,
+    pub due_date: Vec<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateTask {
+    pub task_name: String,
+    pub task_description: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateTaskStatus {
+    pub task_status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Response<T> {
     pub success: bool,
     pub message: T,

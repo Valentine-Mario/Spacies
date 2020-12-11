@@ -206,5 +206,39 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/edit/{info}/{id}",
                 web::post().to(project_handler::update_project),
             ),
+    )
+    .service(
+        web::scope("/task")
+            .route(
+                "/get/{info}/{channel}",
+                web::get().to(task_handler::get_task_in_project),
+            )
+            .route(
+                "/delete/{info}/{id}",
+                web::get().to(task_handler::delete_task),
+            )
+            .route(
+                "/add/{info}/{id}",
+                web::post().to(task_handler::create_task),
+            )
+            .route(
+                "/update/{info}/{id}",
+                web::post().to(task_handler::update_task),
+            )
+            .route(
+                "/updatestatus/{info}/{id}",
+                web::post().to(task_handler::update_task_status),
+            ),
+    )
+    .service(
+        web::scope("/assign")
+            .route(
+                "/add/{info}/{id}",
+                web::post().to(user_task_handler::add_user_to_task),
+            )
+            .route(
+                "/delete/{info}/{id}",
+                web::post().to(user_task_handler::remove_user_from_task),
+            ),
     );
 }
