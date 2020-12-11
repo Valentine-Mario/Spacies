@@ -180,7 +180,7 @@ fn add_mail_folder_db(
     token: String,
     space_name: web::Path<PathInfo>,
     item: web::Json<CreateMailList>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, MailList>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -194,9 +194,10 @@ fn add_mail_folder_db(
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
     if !spaces_user.admin_status {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "only admin allowed to add mail folders".to_string(),
+            Some("only admin allowed to add mail folders".to_string()),
+            None,
         ));
     }
     let mail_list: Vec<String> = maillists
@@ -207,9 +208,10 @@ fn add_mail_folder_db(
         .iter()
         .any(|i| &i.to_lowercase() == &item.folder_name.to_lowercase())
     {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "A similar folder name already exist".to_string(),
+            Some("A similar folder name already exist".to_string()),
+            None,
         ));
     }
 
@@ -217,11 +219,12 @@ fn add_mail_folder_db(
         folder_name: &item.folder_name,
         space_id: &space.id,
     };
-    let _res: MailList = insert_into(maillists)
+    let res: MailList = insert_into(maillists)
         .values(&new_mail_list)
         .get_result(&conn)?;
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "Mail folder created successfully".to_string(),
+        Some("Mail folder created successfully".to_string()),
+        Some(res),
     ))
 }

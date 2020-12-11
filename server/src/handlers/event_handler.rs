@@ -175,7 +175,7 @@ fn get_event_details_db(
     db: web::Data<Pool>,
     token: String,
     space_name: web::Path<ChannelPathInfo>,
-) -> Result<Response<Event>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, Event>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -193,14 +193,18 @@ fn get_event_details_db(
         .filter(event_name.ilike(&space_name.channel))
         .first::<Event>(&conn)?;
 
-    Ok(Response::new(true, space_event))
+    Ok(OptionalResponse::new(
+        true,
+        Some("event details".to_string()),
+        Some(space_event),
+    ))
 }
 
 fn delete_event_db(
     db: web::Data<Pool>,
     token: String,
     space_name: web::Path<AddUserToFolderPath>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, String>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -215,9 +219,10 @@ fn delete_event_db(
         .first::<SpaceUser>(&conn)?;
     let _count = delete(events.find(space_name.id)).execute(&conn)?;
 
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "Event deleted successfully".to_string(),
+        Some("Event deleted successfully".to_string()),
+        None,
     ))
 }
 
@@ -226,7 +231,7 @@ fn search_event_db(
     token: String,
     space_name: web::Path<MailChannelPathInfo>,
     item: web::Query<PaginateQuery>,
-) -> Result<Response<(i64, Vec<Event>)>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, (i64, Vec<Event>)>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -250,7 +255,11 @@ fn search_event_db(
         .load::<(Event, i64)>(&conn)?;
     let total = searched_events.get(0).map(|x| x.1).unwrap_or(0);
     let list: Vec<Event> = searched_events.into_iter().map(|x| x.0).collect();
-    Ok(Response::new(true, (total, list)))
+    Ok(OptionalResponse::new(
+        true,
+        Some("Search results gotten sucssfully".to_string()),
+        Some((total, list)),
+    ))
 }
 
 fn edit_event_db(
@@ -258,7 +267,7 @@ fn edit_event_db(
     token: String,
     space_name: web::Path<AddUserToFolderPath>,
     item: web::Json<EditEvent>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, String>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -280,9 +289,10 @@ fn edit_event_db(
         .iter()
         .any(|i| &i.to_lowercase() == &item.event_name.to_lowercase())
     {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "A similar event name already exist for this space".to_string(),
+            Some("A similar event name already exist for this space".to_string()),
+            None,
         ));
     }
 
@@ -293,9 +303,10 @@ fn edit_event_db(
         ))
         .execute(&conn)?;
 
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "Event updated successfully".to_string(),
+        Some("Event updated successfully".to_string()),
+        None,
     ))
 }
 

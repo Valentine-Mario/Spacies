@@ -161,15 +161,15 @@ impl<T> Response<T> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OptionalResponse<T, U> {
     success: bool,
-    msg: Option<T>,
+    message: Option<T>,
     value: Option<U>,
 }
 
 impl<T, U> OptionalResponse<T, U> {
-    pub fn new(success: bool, msg: Option<T>, value: Option<U>) -> Self {
+    pub fn new(success: bool, message: Option<T>, value: Option<U>) -> Self {
         OptionalResponse {
             success,
-            msg,
+            message,
             value,
         }
     }

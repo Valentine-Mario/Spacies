@@ -182,7 +182,7 @@ fn create_project_db(
     token: String,
     space_name: web::Path<PathInfo>,
     item: web::Json<AddProject>,
-) -> Result<Response<String>, diesel::result::Error> {
+) -> Result<OptionalResponse<String, Project>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
     let user = users
@@ -196,9 +196,10 @@ fn create_project_db(
         .filter(space_user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
     if !spaces_user.admin_status {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "Only admin authorized to create a project".to_string(),
+            Some("Only admin authorized to create a project".to_string()),
+            None,
         ));
     }
 
@@ -210,9 +211,10 @@ fn create_project_db(
         .iter()
         .any(|i| &i.to_lowercase() == &item.project_name.to_lowercase())
     {
-        return Ok(Response::new(
+        return Ok(OptionalResponse::new(
             false,
-            "A similar Project name alrady exist".to_string(),
+            Some("A similar Project name alrady exist".to_string()),
+            None,
         ));
     }
 
@@ -222,11 +224,14 @@ fn create_project_db(
         created_at: chrono::Local::now().naive_local(),
     };
 
-    let _space_project = insert_into(projects).values(&new_project).execute(&conn)?;
+    let space_project: Project = insert_into(projects)
+        .values(&new_project)
+        .get_result(&conn)?;
 
-    Ok(Response::new(
+    Ok(OptionalResponse::new(
         true,
-        "Project created successfully".to_string(),
+        Some("Project created successfully".to_string()),
+        Some(space_project),
     ))
 }
 
