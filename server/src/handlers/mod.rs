@@ -11,3 +11,5 @@ pub mod task_handler;
 pub mod types;
 pub mod user_handler;
 pub mod user_task_handler;
+pub mod channel_chat_handler;
+pub mod user_chat_handler;
