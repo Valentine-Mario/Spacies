@@ -18,6 +18,16 @@ table! {
 }
 
 table! {
+    channel_chats (id) {
+        id -> Int4,
+        user_id -> Int4,
+        space_channel_id -> Int4,
+        chat -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     events (id) {
         id -> Int4,
         event_name -> Text,
@@ -84,6 +94,16 @@ table! {
 }
 
 table! {
+    user_chat (id) {
+        id -> Int4,
+        user_id -> Int4,
+        reciever -> Int4,
+        chat -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     usermails (id) {
         id -> Int4,
         mail_list_id -> Int4,
@@ -113,6 +133,8 @@ table! {
 
 joinable!(asset_contents -> assets (asset_id));
 joinable!(assets -> spaces (space_id));
+joinable!(channel_chats -> spaces_channel (space_channel_id));
+joinable!(channel_chats -> users (user_id));
 joinable!(events -> spaces (space_id));
 joinable!(maillists -> spaces (space_id));
 joinable!(projects -> spaces (space_id));
@@ -120,6 +142,7 @@ joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 joinable!(tasks -> projects (project_id));
+joinable!(user_chat -> users (user_id));
 joinable!(user_tasks -> tasks (task_id));
 joinable!(user_tasks -> users (user_id));
 joinable!(usermails -> maillists (mail_list_id));
@@ -128,6 +151,7 @@ joinable!(usermails -> users (user_id));
 allow_tables_to_appear_in_same_query!(
     asset_contents,
     assets,
+    channel_chats,
     events,
     maillists,
     projects,
@@ -135,6 +159,7 @@ allow_tables_to_appear_in_same_query!(
     spaces_channel,
     spaces_users,
     tasks,
+    user_chat,
     usermails,
     users,
     user_tasks,

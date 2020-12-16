@@ -224,3 +224,44 @@ pub struct NewUserTask<'a> {
     pub user_id: &'a i32,
     pub task_id: &'a i32,
 }
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "channel_chats"]
+#[belongs_to(User)]
+#[belongs_to(SpaceChannel)]
+pub struct ChannelChat {
+    pub id: i32,
+    pub user_id: i32,
+    pub space_channel_id: i32,
+    pub chat: String,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "channel_chats"]
+pub struct NewChannelChat<'a> {
+    pub user_id: &'a i32,
+    pub space_channel_id: &'a i32,
+    pub chat: &'a str,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "user_chat"]
+#[belongs_to(User)]
+pub struct UserChat {
+    pub id: i32,
+    pub user_id: i32,
+    pub reciever: i32,
+    pub chat: String,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "user_chat"]
+pub struct NewUserChat<'a> {
+    pub user_id: &'a i32,
+    pub reciever: &'a i32,
+    pub chat: &'a str,
+    pub created_at: chrono::NaiveDateTime,
+}
