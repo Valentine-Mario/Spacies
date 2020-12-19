@@ -1,5 +1,6 @@
 pub mod asset_content_handler;
 pub mod asset_handler;
+pub mod channel_chat_handler;
 pub mod channel_handler;
 pub mod event_handler;
 pub mod mail_folder_handler;
@@ -9,5 +10,7 @@ pub mod project_handler;
 pub mod space_handler;
 pub mod task_handler;
 pub mod types;
+pub mod user_chat_handler;
 pub mod user_handler;
 pub mod user_task_handler;
+pub mod channel_user_handler;
