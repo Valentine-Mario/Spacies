@@ -265,3 +265,25 @@ pub struct NewUserChat<'a> {
     pub chat: &'a str,
     pub created_at: chrono::NaiveDateTime,
 }
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "channel_users"]
+#[belongs_to(User)]
+#[belongs_to(SpaceChannel)]
+#[belongs_to(Space)]
+pub struct ChannelUser{
+    pub id: i32,
+    pub space_channel_id: i32,
+    pub space_id: i32,
+    pub user_id: i32,
+    pub channel_admin: bool
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "channel_users"]
+pub struct NewChannelUser<'a>{
+    pub space_channel_id: &'a i32,
+    pub space_id: &'a i32,
+    pub user_id: &'a i32,
+    pub channel_admin: &'a bool
+}

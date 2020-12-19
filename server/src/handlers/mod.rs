@@ -13,3 +13,4 @@ pub mod types;
 pub mod user_chat_handler;
 pub mod user_handler;
 pub mod user_task_handler;
+pub mod channel_user_handler;
