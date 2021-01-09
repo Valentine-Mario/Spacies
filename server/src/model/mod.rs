@@ -271,19 +271,19 @@ pub struct NewUserChat<'a> {
 #[belongs_to(User)]
 #[belongs_to(SpaceChannel)]
 #[belongs_to(Space)]
-pub struct ChannelUser{
+pub struct ChannelUser {
     pub id: i32,
     pub space_channel_id: i32,
     pub space_id: i32,
     pub user_id: i32,
-    pub channel_admin: bool
+    pub channel_admin: bool,
 }
 
 #[derive(Insertable, Debug)]
 #[table_name = "channel_users"]
-pub struct NewChannelUser<'a>{
+pub struct NewChannelUser<'a> {
     pub space_channel_id: &'a i32,
     pub space_id: &'a i32,
     pub user_id: &'a i32,
-    pub channel_admin: &'a bool
+    pub channel_admin: &'a bool,
 }
