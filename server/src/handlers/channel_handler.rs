@@ -2,12 +2,19 @@ use crate::auth;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
-use crate::model::{NewChannelUser, NewSpaceChannel, Space, SpaceChannel, SpaceUser, User};
+use crate::model::{
+    ChannelUser, NewChannelUser, NewSpaceChannel, Space, SpaceChannel, SpaceUser, User,
+};
 use crate::schema::channel_users::dsl::channel_users;
+use crate::schema::channel_users::dsl::space_channel_id;
+use crate::schema::channel_users::dsl::space_id as channel_user_space_id;
+use crate::schema::channel_users::dsl::user_id as channel_user_user_id;
+use crate::schema::channel_users::dsl::*;
 use crate::schema::spaces::dsl::*;
 use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
 use crate::schema::spaces_channel::dsl::*;
 use crate::schema::spaces_users::dsl::space_id;
+use crate::schema::spaces_users::dsl::user_id as spaces_user_id;
 use crate::schema::spaces_users::dsl::*;
 use crate::schema::users::dsl::*;
 use crate::Pool;
@@ -151,7 +158,7 @@ fn create_new_channel_db(
         .first::<Space>(&conn)?;
     let spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
-        .filter(user_id.eq(user.id))
+        .filter(spaces_user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
 
     if !spaces_user.admin_status {
@@ -218,14 +225,29 @@ fn delete_channel_db(
     let space = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
-    let _spaces_user: SpaceUser = spaces_users
+    let spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
-        .filter(user_id.eq(user.id))
+        .filter(spaces_user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
     let channel_details = spaces_channel
         .filter(channel_space_id.eq(&space.id))
         .filter(channel_name.ilike(&space_name.channel))
         .first::<SpaceChannel>(&conn)?;
+    //check if user is a channel admin
+    let channel_user: ChannelUser = channel_users
+        .filter(channel_user_space_id.eq(space.id))
+        .filter(space_channel_id.eq(channel_details.id))
+        .filter(channel_user_user_id.eq(user.id))
+        .first::<ChannelUser>(&conn)?;
+
+    if !channel_user.channel_admin || !spaces_user.admin_status {
+        return Ok(Response::new(
+            false,
+            "only admin allowed to delete channel".to_string(),
+        ));
+    }
+
+    let _count2 = delete(channel_users.filter(space_channel_id.eq(channel_details.id)));
     let _count = delete(spaces_channel.find(channel_details.id)).execute(&conn)?;
     Ok(Response::new(
         true,
@@ -262,12 +284,17 @@ fn get_channel_details_db(
         .first::<Space>(&conn)?;
     let _spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
-        .filter(user_id.eq(user.id))
+        .filter(spaces_user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
     let channel_details = spaces_channel
         .filter(channel_space_id.eq(&space.id))
         .filter(channel_name.ilike(&space_name.channel))
         .first::<SpaceChannel>(&conn)?;
+    let channel_user: ChannelUser = channel_users
+        .filter(channel_user_space_id.eq(space.id))
+        .filter(space_channel_id.eq(channel_details.id))
+        .filter(channel_user_user_id.eq(user.id))
+        .first::<ChannelUser>(&conn)?;
     Ok(Response::new(true, channel_details))
 }
 
@@ -287,7 +314,7 @@ fn edit_channel_name_db(
         .first::<Space>(&conn)?;
     let _spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
-        .filter(user_id.eq(user.id))
+        .filter(spaces_user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
     let channels: Vec<String> = spaces_channel
         .filter(channel_space_id.eq(&space.id))
