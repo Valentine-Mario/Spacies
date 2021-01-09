@@ -3,7 +3,11 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
 use crate::helpers::{aws, bcrypt, email, email_template};
-use crate::model::{NewSpace, NewSpaceChannel, NewSpaceUser, NewUser, Space, SpaceUser, User};
+use crate::model::{
+    NewChannelUser, NewSpace, NewSpaceChannel, NewSpaceUser, NewUser, Space, SpaceChannel,
+    SpaceUser, User,
+};
+use crate::schema::channel_users::dsl::channel_users;
 use crate::schema::spaces::dsl::*;
 #[allow(unused_imports)]
 use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
@@ -584,6 +588,23 @@ fn add_invited_user_db(
     let _space_user: SpaceUser = insert_into(spaces_users)
         .values(&new_space_user)
         .get_result(&conn)?;
+    //get general space
+    let general_channel: SpaceChannel = spaces_channel
+        .filter(channel_space_id.eq(space.id))
+        .filter(channel_name.ilike("General"))
+        .first::<SpaceChannel>(&conn)?;
+
+    let new_channel_user = NewChannelUser {
+        space_channel_id: &general_channel.id,
+        space_id: &space.id,
+        user_id: &res.id,
+        channel_admin: &false,
+    };
+
+    //add new user to gnetal channel
+    let _new_space_channel = insert_into(channel_users)
+        .values(&new_channel_user)
+        .execute(&conn)?;
     return Ok(Response::new(
         true,
         "Space account created successfully".to_string(),
@@ -616,6 +637,11 @@ fn invite_user_db(
             "Only admin is permitted to invite users to this space".to_string(),
         ));
     };
+    //get general space
+    let general_channel: SpaceChannel = spaces_channel
+        .filter(channel_space_id.eq(space.id))
+        .filter(channel_name.ilike("General"))
+        .first::<SpaceChannel>(&conn)?;
     //loop through the vec of invite
     for user_email in item.email.iter() {
         //check if user already exist
@@ -642,6 +668,19 @@ fn invite_user_db(
                         let _space_user: SpaceUser = insert_into(spaces_users)
                             .values(&new_space_user)
                             .get_result(&conn)?;
+
+                        let new_channel_user = NewChannelUser {
+                            space_channel_id: &general_channel.id,
+                            space_id: &space.id,
+                            user_id: &user.id,
+                            channel_admin: &false,
+                        };
+
+                        //add new user to gnetal channel
+                        let _new_space_channel = insert_into(channel_users)
+                            .values(&new_channel_user)
+                            .execute(&conn)?;
+
                         //send user email confirming the action
                         let email_body = email_template::added_user(&space.spaces_name);
                         email::send_email(
@@ -806,6 +845,23 @@ fn add_space_db(
             };
             let _space_channel = insert_into(spaces_channel)
                 .values(&default_space_channel)
+                .execute(&conn)?;
+
+            //get general space
+            let general_channel: SpaceChannel = spaces_channel
+                .filter(channel_space_id.eq(space.id))
+                .filter(channel_name.ilike("General"))
+                .first::<SpaceChannel>(&conn)?;
+
+            let new_channel_user = NewChannelUser {
+                space_channel_id: &general_channel.id,
+                space_id: &space.id,
+                user_id: &user.id,
+                channel_admin: &true,
+            };
+            //add user to gneral channel as an admin
+            let _new_space_channel = insert_into(channel_users)
+                .values(&new_channel_user)
                 .execute(&conn)?;
 
             return Ok(OptionalResponse::new(

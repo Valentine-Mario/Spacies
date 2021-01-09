@@ -2,7 +2,8 @@ use crate::auth;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
-use crate::model::{NewSpaceChannel, Space, SpaceChannel, SpaceUser, User};
+use crate::model::{NewChannelUser, NewSpaceChannel, Space, SpaceChannel, SpaceUser, User};
+use crate::schema::channel_users::dsl::channel_users;
 use crate::schema::spaces::dsl::*;
 use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
 use crate::schema::spaces_channel::dsl::*;
@@ -148,10 +149,18 @@ fn create_new_channel_db(
     let space = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
-    let _spaces_user: SpaceUser = spaces_users
+    let spaces_user: SpaceUser = spaces_users
         .filter(space_id.eq(space.id))
         .filter(user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
+
+    if !spaces_user.admin_status {
+        return Ok(OptionalResponse::new(
+            false,
+            Some("Only admin is permitted to create new channel".to_string()),
+            None,
+        ));
+    };
     //get all channels in space
     let channels: Vec<String> = spaces_channel
         .filter(channel_space_id.eq(&space.id))
@@ -176,6 +185,18 @@ fn create_new_channel_db(
     let space_channel: SpaceChannel = insert_into(spaces_channel)
         .values(&new_space_channel)
         .get_result(&conn)?;
+
+    //add new user details to struct
+    let new_channel_user = NewChannelUser {
+        space_channel_id: &space_channel.id,
+        space_id: &space.id,
+        user_id: &user.id,
+        channel_admin: &true,
+    };
+    //add user to new channel as admin
+    let _new_space_channel = insert_into(channel_users)
+        .values(&new_channel_user)
+        .execute(&conn)?;
 
     Ok(OptionalResponse::new(
         true,
@@ -287,7 +308,12 @@ fn edit_channel_name_db(
         .filter(channel_space_id.eq(&space.id))
         .filter(channel_name.ilike(&space_name.channel))
         .first::<SpaceChannel>(&conn)?;
-
+    if channel_details.channel_name == "General" {
+        return Ok(Response::new(
+            false,
+            "General channel can't be modified".to_string(),
+        ));
+    }
     let _space_details = diesel::update(spaces_channel.find(channel_details.id))
         .set(channel_name.eq(&item.channel_name))
         .execute(&conn)?;
