@@ -26,8 +26,7 @@ pub async fn add_user_to_channel(
     auth: BearerAuth,
     space_name: web::Path<ChannelPathInfo>,
     item: web::Json<AddUserToFoldr>,
-)
--> Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
@@ -37,8 +36,10 @@ pub async fn add_user_to_channel(
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
                 .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error adding user to channel".to_string()))
+                    HttpResponse::Ok().json(Response::new(
+                        false,
+                        "Error adding user to channel".to_string(),
+                    ))
                 })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
@@ -53,7 +54,7 @@ pub async fn remove_user_from_channel(
     auth: BearerAuth,
     space_name: web::Path<ChannelPathInfo>,
     item: web::Json<DeleteMailList>,
-)->Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
@@ -63,8 +64,10 @@ pub async fn remove_user_from_channel(
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
                 .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error removing user from channel".to_string()))
+                    HttpResponse::Ok().json(Response::new(
+                        false,
+                        "Error removing user from channel".to_string(),
+                    ))
                 })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
@@ -79,7 +82,7 @@ pub async fn change_user_admin_status(
     auth: BearerAuth,
     space_name: web::Path<ChannelPathInfo>,
     item: web::Json<DeleteMailList>,
-)->Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
@@ -89,8 +92,10 @@ pub async fn change_user_admin_status(
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
                 .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error changing admin status".to_string()))
+                    HttpResponse::Ok().json(Response::new(
+                        false,
+                        "Error changing admin status".to_string(),
+                    ))
                 })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
@@ -104,19 +109,19 @@ pub async fn leave_channel(
     db: web::Data<Pool>,
     auth: BearerAuth,
     space_name: web::Path<ChannelPathInfo>,
-)->Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(web::block(move || {
-                    leave_channel_db(db, auth.token().to_string(), space_name)
-                })
-                .await
-                .map(|response| HttpResponse::Ok().json(response))
-                .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error leaving channel".to_string()))
-                })?)
+                Ok(
+                    web::block(move || leave_channel_db(db, auth.token().to_string(), space_name))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok()
+                                .json(Response::new(false, "Error leaving channel".to_string()))
+                        })?,
+                )
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -129,7 +134,7 @@ pub async fn get_channel_admin_status(
     db: web::Data<Pool>,
     auth: BearerAuth,
     space_name: web::Path<ChannelPathInfo>,
-)->Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
@@ -139,8 +144,10 @@ pub async fn get_channel_admin_status(
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
                 .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error lgetting admin status".to_string()))
+                    HttpResponse::Ok().json(Response::new(
+                        false,
+                        "Error lgetting admin status".to_string(),
+                    ))
                 })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
@@ -154,7 +161,7 @@ pub async fn get_user_channel_in_space(
     db: web::Data<Pool>,
     auth: BearerAuth,
     space_name: web::Path<PathInfo>,
-)->Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
@@ -179,7 +186,7 @@ pub async fn get_user_in_channel(
     db: web::Data<Pool>,
     auth: BearerAuth,
     space_name: web::Path<ChannelPathInfo>,
-)->Result<HttpResponse, Error>{
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
@@ -189,8 +196,7 @@ pub async fn get_user_in_channel(
                 .await
                 .map(|response| HttpResponse::Ok().json(response))
                 .map_err(|_| {
-                    HttpResponse::Ok()
-                        .json(Response::new(false, "Error getting users".to_string()))
+                    HttpResponse::Ok().json(Response::new(false, "Error getting users".to_string()))
                 })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
@@ -269,7 +275,6 @@ fn add_user_to_channel_db(
         "new users added to channel successflly".to_string(),
     ))
 }
-
 
 fn remove_user_from_channel_db(
     db: web::Data<Pool>,

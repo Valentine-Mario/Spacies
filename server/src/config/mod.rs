@@ -240,5 +240,36 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/delete/{info}/{id}",
                 web::post().to(user_task_handler::remove_user_from_task),
             ),
+    )
+    .service(
+        web::scope("/channeluser")
+            .route(
+                "/add/{info}/{channel}",
+                web::post().to(channel_user_handler::add_user_to_channel),
+            )
+            .route(
+                "/remove/{info}/{channel}",
+                web::post().to(channel_user_handler::remove_user_from_channel),
+            )
+            .route(
+                "/updateadmin/{info}/{channel}",
+                web::post().to(channel_user_handler::change_user_admin_status),
+            )
+            .route(
+                "/leave/{info}/{channel}",
+                web::get().to(channel_user_handler::leave_channel),
+            )
+            .route(
+                "/getadmin/{info}/{channel}",
+                web::get().to(channel_user_handler::get_channel_admin_status),
+            )
+            .route(
+                "/spacechannel/{info}",
+                web::get().to(channel_user_handler::get_user_channel_in_space),
+            )
+            .route(
+                "/user/{info}/{channel}",
+                web::get().to(channel_user_handler::get_user_in_channel),
+            ),
     );
 }
