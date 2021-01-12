@@ -9,7 +9,6 @@ use crate::schema::channel_users::dsl::channel_users;
 use crate::schema::channel_users::dsl::space_channel_id;
 use crate::schema::channel_users::dsl::space_id as channel_user_space_id;
 use crate::schema::channel_users::dsl::user_id as channel_user_user_id;
-use crate::schema::channel_users::dsl::*;
 use crate::schema::spaces::dsl::*;
 use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
 use crate::schema::spaces_channel::dsl::*;
@@ -290,7 +289,7 @@ fn get_channel_details_db(
         .filter(channel_space_id.eq(&space.id))
         .filter(channel_name.ilike(&space_name.channel))
         .first::<SpaceChannel>(&conn)?;
-    let channel_user: ChannelUser = channel_users
+    let _channel_user: ChannelUser = channel_users
         .filter(channel_user_space_id.eq(space.id))
         .filter(space_channel_id.eq(channel_details.id))
         .filter(channel_user_user_id.eq(user.id))

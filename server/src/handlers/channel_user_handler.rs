@@ -10,6 +10,7 @@ use crate::schema::spaces::dsl::*;
 use crate::schema::spaces_channel::dsl::space_id as channel_space_id;
 use crate::schema::spaces_channel::dsl::*;
 use crate::schema::spaces_users::dsl::space_id;
+use crate::schema::spaces_users::dsl::user_id as spaces_user_id;
 use crate::schema::spaces_users::dsl::*;
 use crate::schema::users::dsl::*;
 use crate::Pool;
@@ -18,6 +19,186 @@ use actix_web::{web, Error, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use diesel::dsl::{delete, insert_into};
 use diesel::prelude::*;
+
+//http calls
+pub async fn add_user_to_channel(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+    item: web::Json<AddUserToFoldr>,
+)
+-> Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    add_user_to_channel_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error adding user to channel".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn remove_user_from_channel(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+    item: web::Json<DeleteMailList>,
+)->Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    remove_user_from_channel_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error removing user from channel".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn change_user_admin_status(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+    item: web::Json<DeleteMailList>,
+)->Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    change_user_admin_status_db(db, auth.token().to_string(), space_name, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error changing admin status".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn leave_channel(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+)->Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    leave_channel_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error leaving channel".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn get_channel_admin_status(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+)->Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_channel_admin_status_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error lgetting admin status".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn get_user_channel_in_space(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<PathInfo>,
+)->Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_user_channel_in_space_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error getting channels".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn get_user_in_channel(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_name: web::Path<ChannelPathInfo>,
+)->Result<HttpResponse, Error>{
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_user_in_channel_db(db, auth.token().to_string(), space_name)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok()
+                        .json(Response::new(false, "Error getting users".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
 
 //db calls
 fn add_user_to_channel_db(
@@ -88,6 +269,7 @@ fn add_user_to_channel_db(
         "new users added to channel successflly".to_string(),
     ))
 }
+
 
 fn remove_user_from_channel_db(
     db: web::Data<Pool>,
@@ -212,7 +394,7 @@ fn leave_channel_db(
     ))
 }
 
-fn get_channel_admin_status(
+fn get_channel_admin_status_db(
     db: web::Data<Pool>,
     token: String,
     space_name: web::Path<ChannelPathInfo>,
@@ -271,6 +453,10 @@ fn get_user_in_channel_db(
     let space: Space = spaces
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
+    let _spaces_user: SpaceUser = spaces_users
+        .filter(space_id.eq(space.id))
+        .filter(spaces_user_id.eq(user.id))
+        .first::<SpaceUser>(&conn)?;
     let channel: SpaceChannel = spaces_channel
         .filter(channel_space_id.eq(space.id))
         .filter(channel_name.ilike(&space_name.channel))
