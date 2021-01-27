@@ -110,6 +110,15 @@ table! {
         reciever -> Int4,
         chat -> Text,
         created_at -> Timestamp,
+        space_id -> Int4,
+    }
+}
+
+table! {
+    user_tasks (id) {
+        id -> Int4,
+        user_id -> Int4,
+        task_id -> Int4,
     }
 }
 
@@ -133,14 +142,6 @@ table! {
     }
 }
 
-table! {
-    user_tasks (id) {
-        id -> Int4,
-        user_id -> Int4,
-        task_id -> Int4,
-    }
-}
-
 joinable!(asset_contents -> assets (asset_id));
 joinable!(assets -> spaces (space_id));
 joinable!(channel_chats -> spaces_channel (space_channel_id));
@@ -155,6 +156,7 @@ joinable!(spaces_channel -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 joinable!(tasks -> projects (project_id));
+joinable!(user_chat -> spaces (space_id));
 joinable!(user_chat -> users (user_id));
 joinable!(user_tasks -> tasks (task_id));
 joinable!(user_tasks -> users (user_id));
@@ -174,7 +176,7 @@ allow_tables_to_appear_in_same_query!(
     spaces_users,
     tasks,
     user_chat,
+    user_tasks,
     usermails,
     users,
-    user_tasks,
 );
