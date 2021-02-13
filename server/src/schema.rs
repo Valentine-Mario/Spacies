@@ -88,6 +88,7 @@ table! {
         id -> Int4,
         email_address -> Text,
         email_password -> Text,
+        email_provider -> Text,
         space_id -> Int4,
     }
 }

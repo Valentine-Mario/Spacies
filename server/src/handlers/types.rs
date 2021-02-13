@@ -168,6 +168,7 @@ pub struct UpdateTaskStatus {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AddEmail {
     pub email_address: String,
+    pub email_provider: String,
     pub email_password: String,
 }
 

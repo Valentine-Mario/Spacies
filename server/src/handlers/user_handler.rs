@@ -258,6 +258,7 @@ fn forgot_password_db(
                 std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
             let other_email_password =
                 std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+            let other_email_provider=std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
             email::send_email(
                 &user.email,
@@ -266,6 +267,7 @@ fn forgot_password_db(
                 &email_template,
                 &other_email_address,
                 &other_email_password,
+                &other_email_provider
             );
             let hashed = bcrypt::encrypt_password(&rand_string);
             let _updates = diesel::update(users.find(user.id))
@@ -385,6 +387,7 @@ fn resend_verification_db(
         let email_template = email_template::verification_email(&mail_token);
         let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
         let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+        let other_email_provider=std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
         email::send_email(
             &user.email,
@@ -393,6 +396,7 @@ fn resend_verification_db(
             &email_template,
             &other_email_address,
             &other_email_password,
+            &other_email_provider
         );
         return Ok(Response::new(
             true,
@@ -440,6 +444,7 @@ fn add_user_db(
     let mail_token = auth::create_token(&res.id.to_string(), 1).unwrap();
     let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
     let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+    let other_email_provider=std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
     let email_template = email_template::verification_email(&mail_token);
     email::send_email(
@@ -449,6 +454,7 @@ fn add_user_db(
         &email_template,
         &other_email_address,
         &other_email_password,
+        &other_email_provider
     );
 
     //create user token

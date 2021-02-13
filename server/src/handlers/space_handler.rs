@@ -644,6 +644,7 @@ fn invite_user_db(
         .first::<SpaceChannel>(&conn)?;
     let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
     let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+    let other_email_provider=std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
     //loop through the vec of invite
     for user_email in item.email.iter() {
@@ -694,6 +695,7 @@ fn invite_user_db(
                             &email_body,
                             &other_email_address,
                             &other_email_password,
+                            &other_email_provider
                         )
                     }
                 }
@@ -710,6 +712,7 @@ fn invite_user_db(
                     &email_body,
                     &other_email_address,
                     &other_email_password,
+                    &other_email_provider
                 )
             }
             _ => println!("error"),

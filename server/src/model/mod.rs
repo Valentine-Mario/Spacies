@@ -295,6 +295,7 @@ pub struct SpaceEmail {
     pub id: i32,
     pub email_address: String,
     pub email_password: String,
+    pub email_provider: String,
     pub space_id: i32,
 }
 
@@ -303,5 +304,6 @@ pub struct SpaceEmail {
 pub struct NewSpaceEmail<'a> {
     pub email_address: &'a str,
     pub email_password: &'a str,
+    pub email_provider: &'a str,
     pub space_id: &'a i32,
 }
