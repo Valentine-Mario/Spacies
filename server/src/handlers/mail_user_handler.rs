@@ -147,10 +147,10 @@ fn send_email_to_general_db(
                 SpaceUser::belonging_to(&space)
                     .inner_join(users)
                     .load::<(SpaceUser, User)>(&conn)?;
+                    let pass = decrypt(&cred_details.email_password);
             for a in user_spaces.iter() {
                 let template = email_template::notify_folder(&"General".to_string(), &item.body);
                 //decrypt password
-                let pass = decrypt(&cred_details.email_password);
                 email::send_email(
                     &a.1.email,
                     &a.1.username,
@@ -168,7 +168,7 @@ fn send_email_to_general_db(
         Err(diesel::result::Error::NotFound) => {
             return Ok(Response::new(
                 false,
-                "Please provide email credentials before you use this srvice".to_string(),
+                "Please provide email credentials before you use this service".to_string(),
             ))
         }
         _ => return Ok(Response::new(false, "error sending email".to_string())),
@@ -228,7 +228,7 @@ fn send_mail_to_folder_db(
         Err(diesel::result::Error::NotFound) => {
             return Ok(Response::new(
                 false,
-                "Please provide email credentials before you use this srvice".to_string(),
+                "Please provide email credentials before you use this service".to_string(),
             ))
         }
         _ => return Ok(Response::new(false, "error sending email".to_string())),
