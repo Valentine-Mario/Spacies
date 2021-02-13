@@ -9,11 +9,12 @@ pub fn send_email(
     body: &String,
     email_address: &String,
     email_password: &String,
+    email_provider:&String
 ) {
     let email = EmailBuilder::new()
         // Addresses can be specified by the tuple (email, alias)
         .to((email, name))
-        .from(std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set"))
+        .from(email_address.clone())
         .subject(subject)
         .html(body)
         .build()
@@ -21,7 +22,7 @@ pub fn send_email(
     let email: SendableEmail = email.into();
 
     let credentials = Credentials::new(email_address.into(), email_password.into());
-    let client = SmtpClient::new_simple("smtp.mailgun.org")
+    let client = SmtpClient::new_simple(email_provider)
         .unwrap()
         .credentials(credentials)
         .authentication_mechanism(Mechanism::Plain);

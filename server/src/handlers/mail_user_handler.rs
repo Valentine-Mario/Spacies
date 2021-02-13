@@ -158,6 +158,7 @@ fn send_email_to_general_db(
                     &template,
                     &cred_details.email_address,
                     &pass,
+                    &cred_details.email_provider
                 );
             }
             Ok(Response::new(
@@ -218,6 +219,7 @@ fn send_mail_to_folder_db(
                     &template,
                     &cred_details.email_address,
                     &pass,
+                    &cred_details.email_provider
                 );
             }
             Ok(Response::new(

@@ -138,6 +138,7 @@ fn update_email_details_db(
                 .set((
                     email_address.eq(&item.email_address),
                     email_password.eq(&pass),
+                    email_provider.eq(&item.email_provider)
                 ))
                 .execute(&conn)?;
             return Ok(Response::new(
@@ -150,6 +151,7 @@ fn update_email_details_db(
             let new_space_email = NewSpaceEmail {
                 email_address: &item.email_address,
                 email_password: &pass,
+                email_provider:&item.email_provider,
                 space_id: &space.id,
             };
 
