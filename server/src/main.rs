@@ -1,14 +1,15 @@
 #[macro_use]
 extern crate diesel;
+use crate::helpers::schedule::Scheduler;
+use actix::prelude::*;
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, App, HttpServer};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use listenfd::ListenFd;
 use std::env;
-
-use crate::helpers::schedule::Scheduler;
-use actix::prelude::*;
+#[macro_use]
+extern crate magic_crypt;
 
 pub mod auth;
 mod config;

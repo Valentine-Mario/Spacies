@@ -2,10 +2,12 @@ use crate::auth;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::types::*;
-use crate::helpers::{email, email_template};
-use crate::model::{MailList, NewUserMail, Space, SpaceUser, User, UserMail};
+use crate::helpers::{email, email_template, encrypt::decrypt};
+use crate::model::{MailList, NewUserMail, Space, SpaceEmail, SpaceUser, User, UserMail};
 use crate::schema::maillists::dsl::*;
 use crate::schema::spaces::dsl::*;
+use crate::schema::spaces_email::dsl::space_id as space_email_id;
+use crate::schema::spaces_email::dsl::*;
 use crate::schema::spaces_users::dsl::space_id;
 use crate::schema::spaces_users::dsl::user_id as space_user_id;
 use crate::schema::spaces_users::dsl::*;
@@ -135,17 +137,42 @@ fn send_email_to_general_db(
         .filter(space_user_id.eq(user.id))
         .first::<SpaceUser>(&conn)?;
 
-    let user_spaces: Vec<_> = SpaceUser::belonging_to(&space)
-        .inner_join(users)
-        .load::<(SpaceUser, User)>(&conn)?;
-    for a in user_spaces.iter() {
-        let template = email_template::notify_folder(&"General".to_string(), &item.body);
-        email::send_email(&a.1.email, &a.1.username, &item.title, &template);
+    //get space email cred
+    let email_cred = spaces_email
+        .filter(space_email_id.eq(space.id))
+        .first::<SpaceEmail>(&conn);
+    match email_cred {
+        Ok(cred_details) => {
+            let user_spaces: Vec<_> =
+                SpaceUser::belonging_to(&space)
+                    .inner_join(users)
+                    .load::<(SpaceUser, User)>(&conn)?;
+            for a in user_spaces.iter() {
+                let template = email_template::notify_folder(&"General".to_string(), &item.body);
+                //decrypt password
+                let pass = decrypt(&cred_details.email_password);
+                email::send_email(
+                    &a.1.email,
+                    &a.1.username,
+                    &item.title,
+                    &template,
+                    &cred_details.email_address,
+                    &pass,
+                );
+            }
+            Ok(Response::new(
+                true,
+                "Email sent successfully to all members".to_string(),
+            ))
+        }
+        Err(diesel::result::Error::NotFound) => {
+            return Ok(Response::new(
+                false,
+                "Please provide email credentials before you use this srvice".to_string(),
+            ))
+        }
+        _ => return Ok(Response::new(false, "error sending email".to_string())),
     }
-    Ok(Response::new(
-        true,
-        "Email sent successfully to all members".to_string(),
-    ))
 }
 
 fn send_mail_to_folder_db(
@@ -170,24 +197,42 @@ fn send_mail_to_folder_db(
         .first::<SpaceUser>(&conn)?;
 
     let mail_list: MailList = maillists.find(folder_id.id).first::<MailList>(&conn)?;
+    //get space email cred
+    let email_cred = spaces_email
+        .filter(space_email_id.eq(space.id))
+        .first::<SpaceEmail>(&conn);
 
-    let user_mail: Vec<(UserMail, User)> = UserMail::belonging_to(&mail_list)
-        .inner_join(users)
-        .load::<(UserMail, User)>(&conn)?;
+    match email_cred {
+        Ok(cred_details) => {
+            let user_mail: Vec<(UserMail, User)> = UserMail::belonging_to(&mail_list)
+                .inner_join(users)
+                .load::<(UserMail, User)>(&conn)?;
+            let pass = decrypt(&cred_details.email_password);
 
-    for send_user in user_mail.iter() {
-        let template = email_template::notify_folder(&mail_list.folder_name, &item.body);
-        email::send_email(
-            &send_user.1.email,
-            &send_user.1.username,
-            &item.title,
-            &template,
-        );
+            for send_user in user_mail.iter() {
+                let template = email_template::notify_folder(&mail_list.folder_name, &item.body);
+                email::send_email(
+                    &send_user.1.email,
+                    &send_user.1.username,
+                    &item.title,
+                    &template,
+                    &cred_details.email_address,
+                    &pass,
+                );
+            }
+            Ok(Response::new(
+                true,
+                "Email sent successfully to all members".to_string(),
+            ))
+        }
+        Err(diesel::result::Error::NotFound) => {
+            return Ok(Response::new(
+                false,
+                "Please provide email credentials before you use this srvice".to_string(),
+            ))
+        }
+        _ => return Ok(Response::new(false, "error sending email".to_string())),
     }
-    Ok(Response::new(
-        true,
-        "Email sent to all members successfully".to_string(),
-    ))
 }
 
 fn remove_user_folder_db(

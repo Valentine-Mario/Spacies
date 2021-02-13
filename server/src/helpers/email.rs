@@ -2,10 +2,14 @@ use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::{SendableEmail, SmtpClient, SmtpTransport, Transport};
 use lettre_email::EmailBuilder;
 
-pub fn send_email(email: &String, name: &String, subject: &String, body: &String) {
-    let email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
-    let email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
-
+pub fn send_email(
+    email: &String,
+    name: &String,
+    subject: &String,
+    body: &String,
+    email_address: &String,
+    email_password: &String,
+) {
     let email = EmailBuilder::new()
         // Addresses can be specified by the tuple (email, alias)
         .to((email, name))

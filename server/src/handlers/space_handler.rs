@@ -642,6 +642,9 @@ fn invite_user_db(
         .filter(channel_space_id.eq(space.id))
         .filter(channel_name.ilike("General"))
         .first::<SpaceChannel>(&conn)?;
+    let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+    let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+
     //loop through the vec of invite
     for user_email in item.email.iter() {
         //check if user already exist
@@ -683,11 +686,14 @@ fn invite_user_db(
 
                         //send user email confirming the action
                         let email_body = email_template::added_user(&space.spaces_name);
+
                         email::send_email(
                             &user.email,
                             &user.username,
                             &"Added to new space".to_string(),
                             &email_body,
+                            &other_email_address,
+                            &other_email_password,
                         )
                     }
                 }
@@ -695,12 +701,15 @@ fn invite_user_db(
             Err(diesel::result::Error::NotFound) => {
                 //send invite email if user is not found in spaces
                 let mail_token = auth::create_token(&space.id.to_string(), 1).unwrap();
+
                 let email_body = email_template::invite_user(&space.spaces_name, &mail_token);
                 email::send_email(
                     &user_email,
                     &"Spacer".to_string(),
                     &"Invite to join a Space".to_string(),
                     &email_body,
+                    &other_email_address,
+                    &other_email_password,
                 )
             }
             _ => println!("error"),

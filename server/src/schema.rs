@@ -84,6 +84,15 @@ table! {
 }
 
 table! {
+    spaces_email (id) {
+        id -> Int4,
+        email_address -> Text,
+        email_password -> Text,
+        space_id -> Int4,
+    }
+}
+
+table! {
     spaces_users (id) {
         id -> Int4,
         user_id -> Int4,
@@ -153,6 +162,7 @@ joinable!(events -> spaces (space_id));
 joinable!(maillists -> spaces (space_id));
 joinable!(projects -> spaces (space_id));
 joinable!(spaces_channel -> spaces (space_id));
+joinable!(spaces_email -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 joinable!(tasks -> projects (project_id));
@@ -173,6 +183,7 @@ allow_tables_to_appear_in_same_query!(
     projects,
     spaces,
     spaces_channel,
+    spaces_email,
     spaces_users,
     tasks,
     user_chat,

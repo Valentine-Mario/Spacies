@@ -75,6 +75,8 @@ fn run_job(db: Pool) {
 
     //get today's date
     let today: DateTime<Local> = Local::now();
+    let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+    let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
 
     for val in items.iter() {
         //get date of the current event
@@ -110,6 +112,8 @@ fn run_job(db: Pool) {
                     &a.1.username,
                     &"Event reminder".to_string(),
                     &template,
+                    &other_email_address,
+                    &other_email_password,
                 );
             }
         }

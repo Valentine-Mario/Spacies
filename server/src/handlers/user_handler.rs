@@ -254,11 +254,18 @@ fn forgot_password_db(
             let rand_string: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
 
             let email_template = email_template::forgot_password_email(&rand_string);
+            let other_email_address =
+                std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+            let other_email_password =
+                std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+
             email::send_email(
                 &user.email,
                 &user.username,
                 &"Password Reset".to_string(),
                 &email_template,
+                &other_email_address,
+                &other_email_password,
             );
             let hashed = bcrypt::encrypt_password(&rand_string);
             let _updates = diesel::update(users.find(user.id))
@@ -376,11 +383,16 @@ fn resend_verification_db(
         //send user verification email
         let mail_token = auth::create_token(&user.id.to_string(), 1).unwrap();
         let email_template = email_template::verification_email(&mail_token);
+        let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+        let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+
         email::send_email(
             &user.email,
             &user.username,
             &"Welcome To Spacies".to_string(),
             &email_template,
+            &other_email_address,
+            &other_email_password,
         );
         return Ok(Response::new(
             true,
@@ -426,12 +438,17 @@ fn add_user_db(
 
     //send user verification email
     let mail_token = auth::create_token(&res.id.to_string(), 1).unwrap();
+    let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+    let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+
     let email_template = email_template::verification_email(&mail_token);
     email::send_email(
         &res.email,
         &res.username,
         &"Welcome To Spacies".to_string(),
         &email_template,
+        &other_email_address,
+        &other_email_password,
     );
 
     //create user token

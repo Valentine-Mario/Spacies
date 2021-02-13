@@ -271,5 +271,20 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/user/{info}/{channel}",
                 web::get().to(channel_user_handler::get_user_in_channel),
             ),
+    )
+    .service(
+        web::scope("/emailsetting")
+            .route(
+                "/update/{info}",
+                web::post().to(email_setting_handler::update_email_details),
+            )
+            .route(
+                "/delete/{info}",
+                web::get().to(email_setting_handler::delete_email_setting),
+            )
+            .route(
+                "/get/{info}",
+                web::get().to(email_setting_handler::get_email_setting),
+            ),
     );
 }

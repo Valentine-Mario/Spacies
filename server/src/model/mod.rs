@@ -287,3 +287,21 @@ pub struct NewChannelUser<'a> {
     pub user_id: &'a i32,
     pub channel_admin: &'a bool,
 }
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "spaces_email"]
+#[belongs_to(Space)]
+pub struct SpaceEmail {
+    pub id: i32,
+    pub email_address: String,
+    pub email_password: String,
+    pub space_id: i32,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "spaces_email"]
+pub struct NewSpaceEmail<'a> {
+    pub email_address: &'a str,
+    pub email_password: &'a str,
+    pub space_id: &'a i32,
+}
