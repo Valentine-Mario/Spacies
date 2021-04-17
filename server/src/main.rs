@@ -13,6 +13,7 @@ extern crate magic_crypt;
 
 pub mod auth;
 mod config;
+pub mod controllers;
 pub mod handlers;
 pub mod helpers;
 pub mod model;
