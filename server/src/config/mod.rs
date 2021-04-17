@@ -270,6 +270,10 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
             .route(
                 "/user/{info}/{channel}",
                 web::get().to(channel_user_handler::get_user_in_channel),
+            )
+            .route(
+                "/user_info/{id}",
+                web::get().to(channel_user_handler::get_user_by_id),
             ),
     )
     .service(

@@ -9,7 +9,7 @@ pub fn send_email(
     body: &String,
     email_address: &String,
     email_password: &String,
-    email_provider:&String
+    email_provider: &String,
 ) {
     let email = EmailBuilder::new()
         // Addresses can be specified by the tuple (email, alias)
