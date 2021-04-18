@@ -8,17 +8,12 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::controllers::user_chat_controller::*;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
-use crate::handlers::paginate::*;
-use crate::handlers::types::*;
 use crate::helpers::socket::push_user_message;
 use crate::model::{NewUserChat, User, UserChat};
-use crate::schema::user_chat::dsl::id as user_chat_id;
-use crate::schema::user_chat::dsl::user_id as sender_id;
 use crate::schema::user_chat::dsl::*;
-use crate::schema::users::dsl::id as user_id;
 use crate::schema::users::dsl::*;
 
-use diesel::dsl::{delete, insert_into};
+use diesel::dsl::insert_into;
 use diesel::prelude::*;
 
 pub async fn send_message(
@@ -72,6 +67,114 @@ pub async fn send_message(
                         "error getting user details".to_string(),
                     ))),
                 }
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn update_message(
+    db: web::Data<Pool>,
+    token: BearerAuth,
+    other_user_id: web::Path<MultiIdPathInfo>,
+    item: web::Json<ChatMessage>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&token.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                let conn = db.get().unwrap();
+                let decoded_token = auth::decode_token(&token.token().to_string());
+                let user = users
+                    .find(decoded_token.parse::<i32>().unwrap())
+                    .first::<User>(&conn);
+                match user {
+                    Ok(user) => {
+                        let updated_chat = diesel::update(user_chat.find(other_user_id.user_id))
+                            .set((chat.eq(&item.chat),))
+                            .execute(&conn);
+                        match updated_chat {
+                            Ok(_updated_chat) => {
+                                let message = user_chat
+                                    .find(other_user_id.chat_id)
+                                    .first::<UserChat>(&conn)
+                                    .unwrap();
+                                let socket_channel =
+                                    format!("{}-{}", &user.id, other_user_id.user_id);
+                                let socket_message = UserMessage {
+                                    message: message,
+                                    user: user,
+                                };
+                                push_user_message(
+                                    &socket_channel,
+                                    &"chat_update".to_string(),
+                                    &socket_message,
+                                )
+                                .await;
+                                Ok(HttpResponse::Ok().json(Response::new(
+                                    true,
+                                    "message updated successfully".to_string(),
+                                )))
+                            }
+                            _ => Ok(HttpResponse::Ok()
+                                .json(Response::new(false, "error updating chat".to_string()))),
+                        }
+                    }
+                    _ => Ok(HttpResponse::Ok().json(ResponseError::new(
+                        false,
+                        "error getting user details".to_string(),
+                    ))),
+                }
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn get_all_message(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    other_user_id: web::Path<IdPathInfo>,
+    item: web::Query<PaginateQuery>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    get_all_message_db(db, auth.token().to_string(), other_user_id, item)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok().json(Response::new(false, "Error getting chat".to_string()))
+                })?)
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn delete_message(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    other_user_id: web::Path<MultiIdPathInfo>,
+) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(web::block(move || {
+                    delete_message_db(db, auth.token().to_string(), other_user_id)
+                })
+                .await
+                .map(|response| HttpResponse::Ok().json(response))
+                .map_err(|_| {
+                    HttpResponse::Ok().json(Response::new(false, "Error deleting chat".to_string()))
+                })?)
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
