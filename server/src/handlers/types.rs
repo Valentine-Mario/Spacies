@@ -203,6 +203,13 @@ pub struct Response<T> {
     pub message: T,
 }
 
+#[derive(Deserialize)]
+pub struct ChannelPathInfoWithId {
+    pub id: i32,
+    pub info: String,
+    pub channel: String,
+}
+
 impl<T> Response<T> {
     pub fn new(success: bool, message: T) -> Self {
         Self { success, message }
