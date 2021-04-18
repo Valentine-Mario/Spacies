@@ -127,7 +127,8 @@ pub fn delete_channel_db(
         ));
     }
 
-    let _count2 = delete(channel_users.filter(space_channel_id.eq(channel_details.id)));
+    let _count2 =
+        delete(channel_users.filter(space_channel_id.eq(channel_details.id))).execute(&conn)?;
     let _count = delete(spaces_channel.find(channel_details.id)).execute(&conn)?;
     Ok(Response::new(
         true,

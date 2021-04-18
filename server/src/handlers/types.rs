@@ -1,4 +1,6 @@
+use crate::model::{ChannelChat, User, UserChat};
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUser {
     pub username: String,
@@ -89,6 +91,12 @@ pub struct IdPathInfo {
 }
 
 #[derive(Deserialize)]
+pub struct MultiIdPathInfo {
+    pub user_id: i32,
+    pub chat_id: i32,
+}
+
+#[derive(Deserialize)]
 pub struct AddUserToFolderPath {
     pub info: String,
     pub id: i32,
@@ -170,6 +178,23 @@ pub struct AddEmail {
     pub email_address: String,
     pub email_provider: String,
     pub email_password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserMessage {
+    pub message: UserChat,
+    pub user: User,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChannelMessage {
+    pub message: ChannelChat,
+    pub user: User,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChatMessage {
+    pub chat: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

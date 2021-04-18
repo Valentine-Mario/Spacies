@@ -120,7 +120,6 @@ table! {
         reciever -> Int4,
         chat -> Text,
         created_at -> Timestamp,
-        space_id -> Int4,
     }
 }
 
@@ -167,7 +166,6 @@ joinable!(spaces_email -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 joinable!(tasks -> projects (project_id));
-joinable!(user_chat -> spaces (space_id));
 joinable!(user_chat -> users (user_id));
 joinable!(user_tasks -> tasks (task_id));
 joinable!(user_tasks -> users (user_id));
