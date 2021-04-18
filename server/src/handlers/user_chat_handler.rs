@@ -92,7 +92,7 @@ pub async fn update_message(
                 match user {
                     Ok(user) => {
                         let updated_chat = diesel::update(user_chat.find(other_user_id.user_id))
-                            .set((chat.eq(&item.chat),))
+                            .set(chat.eq(&item.chat))
                             .execute(&conn);
                         match updated_chat {
                             Ok(_updated_chat) => {
