@@ -5,14 +5,14 @@ use crate::Pool;
 use actix_web::{web, Error, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use crate::controllers::channel_chat_controller::*;
+use crate::controllers::chat_thread_controller::*;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
-use crate::helpers::socket::push_channel_message;
-use crate::model::{ChannelChat, NewChannelChat, Space, SpaceChannel, User};
+use crate::helpers::socket::push_thread_message;
+use crate::model::{ChannelChat, ChatThread, NewChatThread, User};
 use crate::schema::channel_chats::dsl::*;
-use crate::schema::spaces::dsl::*;
-use crate::schema::spaces_channel::dsl::*;
+use crate::schema::chat_thread::dsl::chat as thread_chat;
+use crate::schema::chat_thread::dsl::*;
 use crate::schema::users::dsl::*;
 
 use diesel::dsl::insert_into;
@@ -21,7 +21,7 @@ use diesel::prelude::*;
 pub async fn send_message(
     db: web::Data<Pool>,
     token: BearerAuth,
-    space_details: web::Path<ChannelPathInfo>,
+    chat_id: web::Path<IdPathInfo>,
     item: web::Json<ChatMessage>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&token.token().to_string()) {
@@ -32,40 +32,35 @@ pub async fn send_message(
                 let user = users
                     .find(decoded_token.parse::<i32>().unwrap())
                     .first::<User>(&conn);
-                let space: Space = spaces
-                    .filter(spaces_name.ilike(&space_details.info))
-                    .first::<Space>(&conn)
-                    .unwrap();
-                let channel: SpaceChannel = spaces_channel
-                    .filter(space_id.eq(&space.id))
-                    .filter(channel_name.ilike(&space_details.channel))
-                    .first::<SpaceChannel>(&conn)
+                let channel_chat: ChannelChat = channel_chats
+                    .find(chat_id.id)
+                    .first::<ChannelChat>(&conn)
                     .unwrap();
                 match user {
                     Ok(user) => {
-                        let new_chat = NewChannelChat {
+                        let new_chat = NewChatThread {
                             user_id: &user.id,
-                            space_channel_id: &channel.id,
+                            space_channel_id: &channel_chat.space_channel_id,
+                            channel_chat_id: &channel_chat.id,
                             chat: &item.chat,
                             created_at: chrono::Local::now().naive_local(),
                         };
+                        //use chat id and channel_chat id as channel
                         let socket_channel = format!(
-                            "channel-chat-{}-{}",
-                            &space.spaces_name, channel.channel_name
+                            "thread-chat-{}-{}",
+                            &channel_chat.id, channel_chat.space_channel_id
                         );
-                        let response: Result<ChannelChat, diesel::result::Error> =
-                            insert_into(channel_chats)
-                                .values(&new_chat)
-                                .get_result(&conn);
+                        let response: Result<ChatThread, diesel::result::Error> =
+                            insert_into(chat_thread).values(&new_chat).get_result(&conn);
                         match response {
                             Ok(response) => {
-                                let socket_message = ChannelMessage {
+                                let socket_message = ThreadMessage {
                                     message: response,
                                     user: user,
                                 };
-                                push_channel_message(
+                                push_thread_message(
                                     &socket_channel,
-                                    &"channel_chat_created".to_string(),
+                                    &"thread_chat_created".to_string(),
                                     &socket_message,
                                 )
                                 .await;
@@ -95,7 +90,7 @@ pub async fn send_message(
 pub async fn update_message(
     db: web::Data<Pool>,
     token: BearerAuth,
-    space_details: web::Path<ChannelPathInfoWithId>,
+    chat_id: web::Path<MultiId>,
     item: web::Json<ChatMessage>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&token.token().to_string()) {
@@ -106,28 +101,32 @@ pub async fn update_message(
                 let user = users
                     .find(decoded_token.parse::<i32>().unwrap())
                     .first::<User>(&conn);
+                let channel_chat: ChannelChat = channel_chats
+                    .find(chat_id.id2)
+                    .first::<ChannelChat>(&conn)
+                    .unwrap();
                 match user {
                     Ok(user) => {
-                        let updated_chat = diesel::update(channel_chats.find(space_details.id))
-                            .set(chat.eq(&item.chat))
+                        let updated_chat = diesel::update(chat_thread.find(chat_id.id))
+                            .set(thread_chat.eq(&item.chat))
                             .execute(&conn);
                         match updated_chat {
                             Ok(_updated_chat) => {
-                                let message = channel_chats
-                                    .find(space_details.id)
-                                    .first::<ChannelChat>(&conn)
+                                let message: ChatThread = chat_thread
+                                    .find(chat_id.id)
+                                    .first::<ChatThread>(&conn)
                                     .unwrap();
                                 let socket_channel = format!(
-                                    "channel-chat-{}-{}",
-                                    &space_details.info, space_details.channel
+                                    "thread-chat-{}-{}",
+                                    &channel_chat.id, channel_chat.space_channel_id
                                 );
-                                let socket_message = ChannelMessage {
+                                let socket_message = ThreadMessage {
                                     message: message,
                                     user: user,
                                 };
-                                push_channel_message(
+                                push_thread_message(
                                     &socket_channel,
-                                    &"channel_chat_update".to_string(),
+                                    &"thread_chat_update".to_string(),
                                     &socket_message,
                                 )
                                 .await;
@@ -153,23 +152,23 @@ pub async fn update_message(
     }
 }
 
-pub async fn get_all_message(
+pub async fn get_chat_thread(
     db: web::Data<Pool>,
     auth: BearerAuth,
-    space_name_path: web::Path<ChannelPathInfo>,
-    item: web::Query<PaginateQuery>,
+    chat_id: web::Path<IdPathInfo>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(web::block(move || {
-                    get_all_message_db(db, auth.token().to_string(), space_name_path, item)
-                })
-                .await
-                .map(|response| HttpResponse::Ok().json(response))
-                .map_err(|_| {
-                    HttpResponse::Ok().json(Response::new(false, "Error getting chat".to_string()))
-                })?)
+                Ok(
+                    web::block(move || get_chat_thread_db(db, auth.token().to_string(), chat_id))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok()
+                                .json(Response::new(false, "Error getting chat".to_string()))
+                        })?,
+                )
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }
@@ -181,19 +180,20 @@ pub async fn get_all_message(
 pub async fn delete_message(
     db: web::Data<Pool>,
     auth: BearerAuth,
-    channel_details: web::Path<IdPathInfo>,
+    chat_id: web::Path<IdPathInfo>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(web::block(move || {
-                    delete_message_db(db, auth.token().to_string(), channel_details)
-                })
-                .await
-                .map(|response| HttpResponse::Ok().json(response))
-                .map_err(|_| {
-                    HttpResponse::Ok().json(Response::new(false, "Error deleting chat".to_string()))
-                })?)
+                Ok(
+                    web::block(move || delete_message_db(db, auth.token().to_string(), chat_id))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok()
+                                .json(Response::new(false, "Error deleting chat".to_string()))
+                        })?,
+                )
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }

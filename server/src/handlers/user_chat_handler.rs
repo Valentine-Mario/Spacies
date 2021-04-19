@@ -38,7 +38,7 @@ pub async fn send_message(
                             chat: &item.chat,
                             created_at: chrono::Local::now().naive_local(),
                         };
-                        let socket_channel = format!("{}-{}", &user.id, other_user_id.id);
+                        let socket_channel = format!("user-chat-{}-{}", &user.id, other_user_id.id);
                         let response = insert_into(user_chat).values(&new_chat).get_result(&conn);
                         match response {
                             Ok(response) => {
@@ -48,7 +48,7 @@ pub async fn send_message(
                                 };
                                 push_user_message(
                                     &socket_channel,
-                                    &"chat_created".to_string(),
+                                    &"user_chat_created".to_string(),
                                     &socket_message,
                                 )
                                 .await;
@@ -101,14 +101,14 @@ pub async fn update_message(
                                     .first::<UserChat>(&conn)
                                     .unwrap();
                                 let socket_channel =
-                                    format!("{}-{}", &user.id, other_user_id.user_id);
+                                    format!("user-chat-{}-{}", &user.id, other_user_id.user_id);
                                 let socket_message = UserMessage {
                                     message: message,
                                     user: user,
                                 };
                                 push_user_message(
                                     &socket_channel,
-                                    &"chat_update".to_string(),
+                                    &"user_chat_update".to_string(),
                                     &socket_message,
                                 )
                                 .await;
@@ -162,19 +162,20 @@ pub async fn get_all_message(
 pub async fn delete_message(
     db: web::Data<Pool>,
     auth: BearerAuth,
-    other_user_id: web::Path<MultiIdPathInfo>,
+    chat_id: web::Path<IdPathInfo>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
-                Ok(web::block(move || {
-                    delete_message_db(db, auth.token().to_string(), other_user_id)
-                })
-                .await
-                .map(|response| HttpResponse::Ok().json(response))
-                .map_err(|_| {
-                    HttpResponse::Ok().json(Response::new(false, "Error deleting chat".to_string()))
-                })?)
+                Ok(
+                    web::block(move || delete_message_db(db, auth.token().to_string(), chat_id))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok()
+                                .json(Response::new(false, "Error deleting chat".to_string()))
+                        })?,
+                )
             } else {
                 Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
             }

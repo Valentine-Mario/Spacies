@@ -3,6 +3,7 @@ pub mod asset_handler;
 pub mod channel_chat_handler;
 pub mod channel_handler;
 pub mod channel_user_handler;
+pub mod chat_thread_handler;
 pub mod email_setting_handler;
 pub mod event_handler;
 pub mod mail_folder_handler;
