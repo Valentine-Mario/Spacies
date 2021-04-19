@@ -30,7 +30,7 @@ pub fn get_mail_folder_details_db(
         .filter(folder_name.ilike(&space_name.name))
         .first::<MailList>(&conn)?;
 
-    let user_mail: Vec<_> = UserMail::belonging_to(&mail_list)
+    let user_mail: Vec<(UserMail, User)> = UserMail::belonging_to(&mail_list)
         .inner_join(users)
         .load::<(UserMail, User)>(&conn)?;
     Ok(Response::new(true, (mail_list, user_mail)))

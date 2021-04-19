@@ -216,7 +216,7 @@ pub fn edit_channel_name_db(
         .filter(channel_space_id.eq(&space.id))
         .filter(channel_name.ilike(&space_name.channel))
         .first::<SpaceChannel>(&conn)?;
-    if channel_details.channel_name == "General" {
+    if channel_details.channel_name.to_lowercase() == "general" {
         return Ok(Response::new(
             false,
             "General channel can't be modified".to_string(),

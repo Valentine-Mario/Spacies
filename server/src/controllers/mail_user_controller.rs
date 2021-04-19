@@ -47,7 +47,7 @@ pub fn send_email_to_general_db(
         .first::<SpaceEmail>(&conn);
     match email_cred {
         Ok(cred_details) => {
-            let user_spaces: Vec<_> =
+            let user_spaces: Vec<(SpaceUser, User)> =
                 SpaceUser::belonging_to(&space)
                     .inner_join(users)
                     .load::<(SpaceUser, User)>(&conn)?;

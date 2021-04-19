@@ -336,7 +336,7 @@ pub fn get_user_space_db(
     let user = users
         .find(decoded_token.parse::<i32>().unwrap())
         .first::<User>(&conn)?;
-    let user_spaces: Vec<_> = SpaceUser::belonging_to(&user)
+    let user_spaces: Vec<(SpaceUser, Space)> = SpaceUser::belonging_to(&user)
         .inner_join(spaces)
         .load::<(SpaceUser, Space)>(&conn)?;
     Ok(Response::new(true, user_spaces))
