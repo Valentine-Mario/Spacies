@@ -307,3 +307,25 @@ pub struct NewSpaceEmail<'a> {
     pub email_provider: &'a str,
     pub space_id: &'a i32,
 }
+
+#[derive(Insertable, Debug)]
+#[table_name = "chat_thread"]
+pub struct NewChatThread<'a> {
+    pub user_id: &'a i32,
+    pub space_channel_id: &'a i32,
+    pub channel_chat_id: &'a i32,
+    pub chat: &'a str,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "chat_thread"]
+#[belongs_to(ChannelChat)]
+pub struct ChatThread {
+    pub id: i32,
+    pub user_id: i32,
+    pub space_channel_id: i32,
+    pub channel_chat_id: i32,
+    pub chat: String,
+    pub created_at: chrono::NaiveDateTime,
+}

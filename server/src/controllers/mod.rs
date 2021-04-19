@@ -3,6 +3,7 @@ pub mod asset_controller;
 pub mod channel_chat_controller;
 pub mod channel_controller;
 pub mod channel_user_controller;
+pub mod chat_thread_controller;
 pub mod email_setting_controller;
 pub mod event_controller;
 pub mod mail_folder_controller;

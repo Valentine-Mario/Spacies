@@ -49,7 +49,7 @@ pub fn get_all_message_db(
 pub fn delete_message_db(
     db: web::Data<Pool>,
     token: String,
-    channel_details: web::Path<MultiIdPathInfo>,
+    channel_details: web::Path<IdPathInfo>,
 ) -> Result<Response<String>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
@@ -58,7 +58,7 @@ pub fn delete_message_db(
         .first::<User>(&conn)?;
     let _count2 = delete(
         channel_chats
-            .filter(channel_chat_id.eq(channel_details.chat_id))
+            .filter(channel_chat_id.eq(channel_details.id))
             .filter(channel_user_chat_id.eq(user.id)),
     )
     .execute(&conn)?;

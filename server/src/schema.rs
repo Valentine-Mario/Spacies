@@ -38,6 +38,17 @@ table! {
 }
 
 table! {
+    chat_thread (id) {
+        id -> Int4,
+        user_id -> Int4,
+        space_channel_id -> Int4,
+        channel_chat_id -> Int4,
+        chat -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     events (id) {
         id -> Int4,
         event_name -> Text,
@@ -158,6 +169,9 @@ joinable!(channel_chats -> users (user_id));
 joinable!(channel_users -> spaces (space_id));
 joinable!(channel_users -> spaces_channel (space_channel_id));
 joinable!(channel_users -> users (user_id));
+joinable!(chat_thread -> channel_chats (channel_chat_id));
+joinable!(chat_thread -> spaces_channel (space_channel_id));
+joinable!(chat_thread -> users (user_id));
 joinable!(events -> spaces (space_id));
 joinable!(maillists -> spaces (space_id));
 joinable!(projects -> spaces (space_id));
@@ -177,6 +191,7 @@ allow_tables_to_appear_in_same_query!(
     assets,
     channel_chats,
     channel_users,
+    chat_thread,
     events,
     maillists,
     projects,
