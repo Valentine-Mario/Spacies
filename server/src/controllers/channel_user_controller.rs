@@ -264,7 +264,7 @@ pub fn get_user_channel_in_space_db(
         .filter(spaces_name.ilike(&space_name.info))
         .first::<Space>(&conn)?;
 
-    let user_spaces: Vec<_> = ChannelUser::belonging_to(&user)
+    let user_spaces: Vec<(ChannelUser, SpaceChannel)> = ChannelUser::belonging_to(&user)
         .inner_join(spaces_channel)
         .filter(channel_user_space_id.eq(space.id))
         .load::<(ChannelUser, SpaceChannel)>(&conn)?;
@@ -292,7 +292,7 @@ pub fn get_user_in_channel_db(
         .filter(channel_space_id.eq(space.id))
         .filter(channel_name.ilike(&space_name.channel))
         .first::<SpaceChannel>(&conn)?;
-    let user_spaces: Vec<_> = ChannelUser::belonging_to(&channel)
+    let user_spaces: Vec<(ChannelUser, User)> = ChannelUser::belonging_to(&channel)
         .inner_join(users)
         .load::<(ChannelUser, User)>(&conn)?;
     Ok(Response::new(true, user_spaces))
