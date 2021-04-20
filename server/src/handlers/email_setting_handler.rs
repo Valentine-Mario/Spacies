@@ -34,6 +34,7 @@ pub async fn update_email_details(
     }
 }
 
+
 pub async fn delete_email_setting(
     db: web::Data<Pool>,
     auth: BearerAuth,
