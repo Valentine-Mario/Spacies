@@ -242,6 +242,60 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
             ),
     )
     .service(
+        web::scope("/userchat")
+            .route("/add/{id}", web::post().to(user_chat_handler::send_message))
+            .route(
+                "/update/{user_id}/{chat_id}",
+                web::post().to(user_chat_handler::update_message),
+            )
+            .route(
+                "/get/{id}",
+                web::get().to(user_chat_handler::get_all_message),
+            )
+            .route(
+                "/delete/{id}",
+                web::get().to(user_chat_handler::delete_message),
+            ),
+    )
+    .service(
+        web::scope("/channelchat")
+            .route(
+                "/add/{info}/{channel}",
+                web::post().to(channel_chat_handler::send_message),
+            )
+            .route(
+                "/update/{id}/{info}/{channel}",
+                web::post().to(channel_chat_handler::update_message),
+            )
+            .route(
+                "/get/{info}/{channel}",
+                web::get().to(channel_chat_handler::get_all_message),
+            )
+            .route(
+                "/delete/{id}",
+                web::get().to(channel_chat_handler::delete_message),
+            ),
+    )
+    .service(
+        web::scope("/threadchat")
+            .route(
+                "/add/{id}",
+                web::post().to(chat_thread_handler::send_message),
+            )
+            .route(
+                "/update/{id}/{id2}",
+                web::post().to(chat_thread_handler::update_message),
+            )
+            .route(
+                "/get/{id}",
+                web::get().to(chat_thread_handler::get_chat_thread),
+            )
+            .route(
+                "/delete/{id}",
+                web::get().to(chat_thread_handler::delete_message),
+            ),
+    )
+    .service(
         web::scope("/channeluser")
             .route(
                 "/add/{info}/{channel}",

@@ -47,10 +47,9 @@ pub fn send_email_to_general_db(
         .first::<SpaceEmail>(&conn);
     match email_cred {
         Ok(cred_details) => {
-            let user_spaces: Vec<(SpaceUser, User)> =
-                SpaceUser::belonging_to(&space)
-                    .inner_join(users)
-                    .load::<(SpaceUser, User)>(&conn)?;
+            let user_spaces: Vec<(SpaceUser, User)> = SpaceUser::belonging_to(&space)
+                .inner_join(users)
+                .load::<(SpaceUser, User)>(&conn)?;
             let pass = decrypt(&cred_details.email_password);
             for a in user_spaces.iter() {
                 let template = email_template::notify_folder(&"General".to_string(), &item.body);
