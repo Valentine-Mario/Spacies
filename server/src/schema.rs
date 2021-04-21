@@ -125,6 +125,28 @@ table! {
 }
 
 table! {
+    unread_channel_chat (id) {
+        id -> Int4,
+        user_id -> Int4,
+        space_channel_id -> Int4,
+        channel_chat_id -> Int4,
+        viewed -> Bool,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    unread_user_chat (id) {
+        id -> Int4,
+        user_id -> Int4,
+        sender -> Int4,
+        user_chat_id -> Int4,
+        viewed -> Bool,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
     user_chat (id) {
         id -> Int4,
         user_id -> Int4,
@@ -180,6 +202,11 @@ joinable!(spaces_email -> spaces (space_id));
 joinable!(spaces_users -> spaces (space_id));
 joinable!(spaces_users -> users (user_id));
 joinable!(tasks -> projects (project_id));
+joinable!(unread_channel_chat -> channel_chats (channel_chat_id));
+joinable!(unread_channel_chat -> spaces_channel (space_channel_id));
+joinable!(unread_channel_chat -> users (user_id));
+joinable!(unread_user_chat -> user_chat (user_chat_id));
+joinable!(unread_user_chat -> users (user_id));
 joinable!(user_chat -> users (user_id));
 joinable!(user_tasks -> tasks (task_id));
 joinable!(user_tasks -> users (user_id));
@@ -200,6 +227,8 @@ allow_tables_to_appear_in_same_query!(
     spaces_email,
     spaces_users,
     tasks,
+    unread_channel_chat,
+    unread_user_chat,
     user_chat,
     user_tasks,
     usermails,
