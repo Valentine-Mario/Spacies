@@ -38,3 +38,4 @@ cron = "0.6.1"
 actix-web-actors = "3.0.0"
 actix = "0.10.0"
 magic-crypt="3.1.6"
+tokio={ version = "0.2.24", features = ["full"] }

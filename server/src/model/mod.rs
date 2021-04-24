@@ -288,7 +288,9 @@ pub struct NewChannelUser<'a> {
     pub channel_admin: &'a bool,
 }
 
-#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[derive(
+    Debug, Clone, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable,
+)]
 #[table_name = "spaces_email"]
 #[belongs_to(Space)]
 pub struct SpaceEmail {
