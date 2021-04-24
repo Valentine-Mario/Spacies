@@ -34,6 +34,16 @@ table! {
         space_id -> Int4,
         user_id -> Int4,
         channel_admin -> Bool,
+        viewed -> Int4,
+    }
+}
+
+table! {
+    chat_ref (id) {
+        id -> Int4,
+        user_id -> Int4,
+        reciever -> Int4,
+        viewed -> Int4,
     }
 }
 
@@ -191,6 +201,7 @@ joinable!(channel_chats -> users (user_id));
 joinable!(channel_users -> spaces (space_id));
 joinable!(channel_users -> spaces_channel (space_channel_id));
 joinable!(channel_users -> users (user_id));
+joinable!(chat_ref -> users (user_id));
 joinable!(chat_thread -> channel_chats (channel_chat_id));
 joinable!(chat_thread -> spaces_channel (space_channel_id));
 joinable!(chat_thread -> users (user_id));
@@ -218,6 +229,7 @@ allow_tables_to_appear_in_same_query!(
     assets,
     channel_chats,
     channel_users,
+    chat_ref,
     chat_thread,
     events,
     maillists,
