@@ -12,6 +12,7 @@ use diesel::dsl::insert_into;
 use diesel::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+use tokio::task;
 
 pub fn forgot_password_db(
     db: web::Data<Pool>,
@@ -21,30 +22,34 @@ pub fn forgot_password_db(
     let user_details = users.filter(email.ilike(&item.email)).first::<User>(&conn);
     match user_details {
         Ok(user) => {
-            //generate random string
-            let rand_string: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
+            //run email sending as a background job
+            task::spawn(async move {
+                //generate random string
+                let rand_string: String =
+                    thread_rng().sample_iter(&Alphanumeric).take(30).collect();
 
-            let email_template = email_template::forgot_password_email(&rand_string);
-            let other_email_address =
-                std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
-            let other_email_password =
-                std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
-            let other_email_provider =
-                std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
+                let email_template = email_template::forgot_password_email(&rand_string);
+                let other_email_address =
+                    std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+                let other_email_password =
+                    std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+                let other_email_provider =
+                    std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
-            email::send_email(
-                &user.email,
-                &user.username,
-                &"Password Reset".to_string(),
-                &email_template,
-                &other_email_address,
-                &other_email_password,
-                &other_email_provider,
-            );
-            let hashed = bcrypt::encrypt_password(&rand_string);
-            let _updates = diesel::update(users.find(user.id))
-                .set(user_password.eq(&hashed))
-                .execute(&conn);
+                email::send_email(
+                    &user.email,
+                    &user.username,
+                    &"Password Reset".to_string(),
+                    &email_template,
+                    &other_email_address,
+                    &other_email_password,
+                    &other_email_provider,
+                );
+                let hashed = bcrypt::encrypt_password(&rand_string);
+                let _updates = diesel::update(users.find(user.id))
+                    .set(user_password.eq(&hashed))
+                    .execute(&conn);
+            });
             return Ok(Response::new(
                 true,
                 "Reset email sent successfully".to_string(),
@@ -154,22 +159,29 @@ pub fn resend_verification_db(
             "your account is already verified".to_string(),
         ));
     } else {
-        //send user verification email
-        let mail_token = auth::create_token(&user.id.to_string(), 1).unwrap();
-        let email_template = email_template::verification_email(&mail_token);
-        let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
-        let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
-        let other_email_provider = std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
+        //send email as a background job
+        task::spawn(async move {
+            //send user verification email
+            let mail_token = auth::create_token(&user.id.to_string(), 1).unwrap();
+            let email_template = email_template::verification_email(&mail_token);
+            let other_email_address =
+                std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+            let other_email_password =
+                std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+            let other_email_provider =
+                std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
-        email::send_email(
-            &user.email,
-            &user.username,
-            &"Welcome To Spacies".to_string(),
-            &email_template,
-            &other_email_address,
-            &other_email_password,
-            &other_email_provider,
-        );
+            email::send_email(
+                &user.email,
+                &user.username,
+                &"Welcome To Spacies".to_string(),
+                &email_template,
+                &other_email_address,
+                &other_email_password,
+                &other_email_provider,
+            );
+        });
+
         return Ok(Response::new(
             true,
             "verification email sent successfully".to_string(),
@@ -211,26 +223,29 @@ pub fn add_user_db(
         created_at: chrono::Local::now().naive_local(),
     };
     let res: User = insert_into(users).values(&new_user).get_result(&conn)?;
+    let new_user_id = res.id;
+    //send email as a new background task
+    task::spawn(async move {
+        //send user verification email
+        let mail_token = auth::create_token(&res.id.to_string(), 1).unwrap();
+        let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
+        let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
+        let other_email_provider = std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
 
-    //send user verification email
-    let mail_token = auth::create_token(&res.id.to_string(), 1).unwrap();
-    let other_email_address = std::env::var("EMAIL_ADDRESS").expect("EMAIL ADDRESS not set");
-    let other_email_password = std::env::var("EMAIL_PASSWORD").expect("EMAIL PASSWORD not set");
-    let other_email_provider = std::env::var("EMAIL_PROVIDER").expect("EMAIL PROVIDER not set");
-
-    let email_template = email_template::verification_email(&mail_token);
-    email::send_email(
-        &res.email,
-        &res.username,
-        &"Welcome To Spacies".to_string(),
-        &email_template,
-        &other_email_address,
-        &other_email_password,
-        &other_email_provider,
-    );
+        let email_template = email_template::verification_email(&mail_token);
+        email::send_email(
+            &res.email,
+            &res.username,
+            &"Welcome To Spacies".to_string(),
+            &email_template,
+            &other_email_address,
+            &other_email_password,
+            &other_email_provider,
+        );
+    });
 
     //create user token
-    match auth::create_token(&res.id.to_string(), 30) {
+    match auth::create_token(&new_user_id.to_string(), 30) {
         Ok(token) => return Ok(Response::new(true, token.to_string())),
         _ => Ok(Response::new(false, "error creating token".to_string())),
     }

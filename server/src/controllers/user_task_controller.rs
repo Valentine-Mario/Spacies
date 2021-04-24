@@ -97,5 +97,6 @@ pub fn remove_user_from_task_db(
             .filter(task_user_id.eq(item.id)),
     )
     .execute(&conn)?;
+
     Ok(Response::new(true, "user removed successfully".to_string()))
 }

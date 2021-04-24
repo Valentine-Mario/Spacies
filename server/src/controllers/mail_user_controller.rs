@@ -15,6 +15,7 @@ use crate::schema::usermails::dsl::user_id as mail_user_id;
 use crate::schema::usermails::dsl::*;
 use crate::schema::users::dsl::*;
 use crate::Pool;
+use tokio::task;
 
 use actix_web::web;
 use diesel::dsl::{delete, insert_into};
@@ -53,16 +54,22 @@ pub fn send_email_to_general_db(
             let pass = decrypt(&cred_details.email_password);
             for a in user_spaces.iter() {
                 let template = email_template::notify_folder(&"General".to_string(), &item.body);
-                //decrypt password
-                email::send_email(
-                    &a.1.email,
-                    &a.1.username,
-                    &item.title,
-                    &template,
-                    &cred_details.email_address,
-                    &pass,
-                    &cred_details.email_provider,
-                );
+                let credentials = cred_details.clone();
+                let copy_pass = pass.clone();
+                let reciever_email = a.1.email.clone();
+                let receiever_username = a.1.username.clone();
+                let title = item.title.clone();
+                task::spawn(async move {
+                    email::send_email(
+                        &reciever_email,
+                        &receiever_username,
+                        &title,
+                        &template,
+                        &credentials.email_address,
+                        &copy_pass,
+                        &credentials.email_provider,
+                    );
+                });
             }
             Ok(Response::new(
                 true,
@@ -115,15 +122,22 @@ pub fn send_mail_to_folder_db(
 
             for send_user in user_mail.iter() {
                 let template = email_template::notify_folder(&mail_list.folder_name, &item.body);
-                email::send_email(
-                    &send_user.1.email,
-                    &send_user.1.username,
-                    &item.title,
-                    &template,
-                    &cred_details.email_address,
-                    &pass,
-                    &cred_details.email_provider,
-                );
+                let credentials = cred_details.clone();
+                let copy_pass = pass.clone();
+                let reciever_email = send_user.1.email.clone();
+                let receiever_username = send_user.1.username.clone();
+                let title = item.title.clone();
+                task::spawn(async move {
+                    email::send_email(
+                        &reciever_email,
+                        &receiever_username,
+                        &title,
+                        &template,
+                        &credentials.email_address,
+                        &copy_pass,
+                        &credentials.email_provider,
+                    );
+                });
             }
             Ok(Response::new(
                 true,
