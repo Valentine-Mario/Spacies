@@ -205,6 +205,7 @@ pub fn add_invited_user_db(
         space_id: &space.id,
         user_id: &res.id,
         channel_admin: &false,
+        viewed: &0,
     };
 
     //add new user to gnetal channel
@@ -281,6 +282,7 @@ pub fn invite_user_db(
                             space_id: &space.id,
                             user_id: &user.id,
                             channel_admin: &false,
+                            viewed: &0,
                         };
 
                         //add new user to gnetal channel
@@ -489,6 +491,7 @@ pub fn add_space_db(
                 space_id: &space.id,
                 user_id: &user.id,
                 channel_admin: &true,
+                viewed: &0,
             };
             //add user to gneral channel as an admin
             let _new_space_channel = insert_into(channel_users)

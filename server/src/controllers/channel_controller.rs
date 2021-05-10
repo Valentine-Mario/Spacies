@@ -79,6 +79,7 @@ pub fn create_new_channel_db(
         space_id: &space.id,
         user_id: &user.id,
         channel_admin: &true,
+        viewed: &0,
     };
     //add user to new channel as admin
     let _new_space_channel = insert_into(channel_users)

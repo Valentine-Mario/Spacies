@@ -9,9 +9,12 @@ use crate::controllers::user_chat_controller::*;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::helpers::socket::push_user_message;
-use crate::model::{NewUserChat, User, UserChat};
+use crate::model::{ChatList, NewChatList, NewUserChat, User, UserChat};
+use crate::schema::unread_user_chat::dsl::user_id as unread_chat_user_id;
+use crate::schema::unread_user_chat::dsl::*;
 use crate::schema::user_chat::dsl::*;
 use crate::schema::users::dsl::*;
+use tokio::task;
 
 use diesel::dsl::insert_into;
 use diesel::prelude::*;
@@ -44,7 +47,7 @@ pub async fn send_message(
                             Ok(response) => {
                                 let socket_message = UserMessage {
                                     message: response,
-                                    user: user,
+                                    user: user.clone(),
                                 };
                                 push_user_message(
                                     &socket_channel,
@@ -52,6 +55,64 @@ pub async fn send_message(
                                     &socket_message,
                                 )
                                 .await;
+
+                                //spawn task in new thread
+                                task::spawn(async move {
+                                    //check if user exist in chat list
+                                    let list = unread_user_chat
+                                        .filter(unread_chat_user_id.eq(other_user_id.id))
+                                        .filter(other.eq(&user.id))
+                                        .first::<ChatList>(&conn);
+
+                                    match list {
+                                        Ok(_list_item) => {
+                                            //update item for both users
+                                            diesel::update(
+                                                unread_user_chat
+                                                    .filter(
+                                                        unread_chat_user_id.eq(other_user_id.id),
+                                                    )
+                                                    .filter(other.eq(&user.id)),
+                                            )
+                                            .set(updated_at.eq(chrono::Local::now().naive_local()))
+                                            .execute(&conn)
+                                            .unwrap();
+
+                                            diesel::update(
+                                                unread_user_chat
+                                                    .filter(unread_chat_user_id.eq(&user.id))
+                                                    .filter(other.eq(other_user_id.id)),
+                                            )
+                                            .set(updated_at.eq(chrono::Local::now().naive_local()))
+                                            .execute(&conn)
+                                            .unwrap();
+                                        }
+                                        Err(diesel::result::Error::NotFound) => {
+                                            //create new chat list for both users if none exist
+                                            let user1 = NewChatList {
+                                                user_id: &user.id,
+                                                other: &other_user_id.id,
+                                                updated_at: chrono::Local::now().naive_local(),
+                                            };
+                                            let user2 = NewChatList {
+                                                user_id: &user.id,
+                                                other: &other_user_id.id,
+                                                updated_at: chrono::Local::now().naive_local(),
+                                            };
+                                            insert_into(unread_user_chat)
+                                                .values(&user1)
+                                                .execute(&conn)
+                                                .unwrap();
+                                            insert_into(unread_user_chat)
+                                                .values(&user2)
+                                                .execute(&conn)
+                                                .unwrap();
+                                        }
+                                        _ => {
+                                            println!("encountered an error")
+                                        }
+                                    }
+                                });
 
                                 Ok(HttpResponse::Ok().json(Response::new(
                                     true,
@@ -174,6 +235,27 @@ pub async fn delete_message(
                         .map_err(|_| {
                             HttpResponse::Ok()
                                 .json(Response::new(false, "Error deleting chat".to_string()))
+                        })?,
+                )
+            } else {
+                Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string())))
+            }
+        }
+        Err(_) => Ok(HttpResponse::Ok().json(ResponseError::new(false, "jwt error".to_string()))),
+    }
+}
+
+pub async fn get_chat_list(db: web::Data<Pool>, auth: BearerAuth) -> Result<HttpResponse, Error> {
+    match auth::validate_token(&auth.token().to_string()) {
+        Ok(res) => {
+            if res == true {
+                Ok(
+                    web::block(move || get_chat_list_db(db, auth.token().to_string()))
+                        .await
+                        .map(|response| HttpResponse::Ok().json(response))
+                        .map_err(|_| {
+                            HttpResponse::Ok()
+                                .json(Response::new(false, "Error getting list".to_string()))
                         })?,
                 )
             } else {

@@ -255,7 +255,8 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
             .route(
                 "/delete/{id}",
                 web::get().to(user_chat_handler::delete_message),
-            ),
+            )
+            .route("/getlist", web::get().to(user_chat_handler::get_chat_list)),
     )
     .service(
         web::scope("/channelchat")
