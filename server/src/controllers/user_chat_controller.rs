@@ -3,7 +3,8 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::paginate::*;
 use crate::handlers::types::*;
-use crate::model::{User, UserChat};
+use crate::model::{ChatList, User, UserChat};
+use crate::schema::unread_user_chat::dsl::*;
 use crate::schema::user_chat::dsl::id as user_chat_id;
 use crate::schema::user_chat::dsl::user_id as sender_id;
 use crate::schema::user_chat::dsl::*;
@@ -14,6 +15,26 @@ use crate::Pool;
 use actix_web::web;
 use diesel::dsl::delete;
 use diesel::prelude::*;
+
+pub fn get_chat_list_db(
+    db: web::Data<Pool>,
+    token: String,
+) -> Result<Response<Vec<User>>, diesel::result::Error> {
+    let conn = db.get().unwrap();
+    let decoded_token = auth::decode_token(&token);
+    let chat_list: Vec<ChatList> = unread_user_chat
+        .filter(other.eq(&decoded_token.parse::<i32>().unwrap()))
+        .order(updated_at.desc())
+        .load::<ChatList>(&conn)?;
+    //find a better way to do this
+    //seems to be the only solution now due to diesel limitations
+    let mut return_val: Vec<User> = vec![];
+    for item in chat_list {
+        let user = users.find(item.user_id).first::<User>(&conn)?;
+        return_val.push(user)
+    }
+    Ok(Response::new(true, return_val))
+}
 
 pub fn get_all_message_db(
     db: web::Data<Pool>,

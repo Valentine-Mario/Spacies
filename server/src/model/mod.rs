@@ -1,6 +1,8 @@
 use crate::schema::*;
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[derive(
+    Debug, Serialize, Clone, Associations, PartialEq, Identifiable, Deserialize, Queryable,
+)]
 #[table_name = "users"]
 pub struct User {
     pub id: i32,
@@ -277,6 +279,7 @@ pub struct ChannelUser {
     pub space_id: i32,
     pub user_id: i32,
     pub channel_admin: bool,
+    pub viewed: i32,
 }
 
 #[derive(Insertable, Debug)]
@@ -286,6 +289,7 @@ pub struct NewChannelUser<'a> {
     pub space_id: &'a i32,
     pub user_id: &'a i32,
     pub channel_admin: &'a bool,
+    pub viewed: &'a i32,
 }
 
 #[derive(
@@ -330,4 +334,22 @@ pub struct ChatThread {
     pub channel_chat_id: i32,
     pub chat: String,
     pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Associations, PartialEq, Identifiable, Deserialize, Queryable)]
+#[table_name = "unread_user_chat"]
+#[belongs_to(User)]
+pub struct ChatList {
+    pub id: i32,
+    pub user_id: i32,
+    pub other: i32,
+    pub updated_at: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, Debug)]
+#[table_name = "unread_user_chat"]
+pub struct NewChatList<'a> {
+    pub user_id: &'a i32,
+    pub other: &'a i32,
+    pub updated_at: chrono::NaiveDateTime,
 }
