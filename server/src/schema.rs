@@ -142,6 +142,7 @@ table! {
         user_id -> Int4,
         other -> Int4,
         updated_at -> Timestamp,
+        space_id -> Int4,
     }
 }
 
@@ -204,6 +205,7 @@ joinable!(tasks -> projects (project_id));
 joinable!(unread_channel_chat -> channel_chats (channel_chat_id));
 joinable!(unread_channel_chat -> spaces_channel (space_channel_id));
 joinable!(unread_channel_chat -> users (user_id));
+joinable!(unread_user_chat -> spaces (space_id));
 joinable!(unread_user_chat -> users (user_id));
 joinable!(user_chat -> users (user_id));
 joinable!(user_tasks -> tasks (task_id));

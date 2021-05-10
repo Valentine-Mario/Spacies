@@ -243,7 +243,10 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
     )
     .service(
         web::scope("/userchat")
-            .route("/add/{id}", web::post().to(user_chat_handler::send_message))
+            .route(
+                "/add/{info}/{id}",
+                web::post().to(user_chat_handler::send_message),
+            )
             .route(
                 "/update/{user_id}/{chat_id}",
                 web::post().to(user_chat_handler::update_message),
@@ -256,7 +259,10 @@ pub fn config_routes(cfg: &mut web::ServiceConfig) {
                 "/delete/{id}",
                 web::get().to(user_chat_handler::delete_message),
             )
-            .route("/getlist", web::get().to(user_chat_handler::get_chat_list)),
+            .route(
+                "/getlist/{info}",
+                web::get().to(user_chat_handler::get_chat_list),
+            ),
     )
     .service(
         web::scope("/channelchat")

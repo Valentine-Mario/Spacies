@@ -9,7 +9,8 @@ use crate::controllers::user_chat_controller::*;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::helpers::socket::push_user_message;
-use crate::model::{ChatList, NewChatList, NewUserChat, User, UserChat};
+use crate::model::{ChatList, NewChatList, NewUserChat, Space, User, UserChat};
+use crate::schema::spaces::dsl::*;
 use crate::schema::unread_user_chat::dsl::user_id as unread_chat_user_id;
 use crate::schema::unread_user_chat::dsl::*;
 use crate::schema::user_chat::dsl::*;
@@ -22,7 +23,7 @@ use diesel::prelude::*;
 pub async fn send_message(
     db: web::Data<Pool>,
     token: BearerAuth,
-    other_user_id: web::Path<IdPathInfo>,
+    other_user_id: web::Path<AddUserToFolderPath>,
     item: web::Json<ChatMessage>,
 ) -> Result<HttpResponse, Error> {
     match auth::validate_token(&token.token().to_string()) {
@@ -33,6 +34,10 @@ pub async fn send_message(
                 let user = users
                     .find(decoded_token.parse::<i32>().unwrap())
                     .first::<User>(&conn);
+                let space: Space = spaces
+                    .filter(spaces_name.ilike(&other_user_id.info))
+                    .first::<Space>(&conn)
+                    .unwrap();
                 match user {
                     Ok(user) => {
                         let new_chat = NewUserChat {
@@ -93,11 +98,13 @@ pub async fn send_message(
                                                 user_id: &user.id,
                                                 other: &other_user_id.id,
                                                 updated_at: chrono::Local::now().naive_local(),
+                                                space_id: &space.id,
                                             };
                                             let user2 = NewChatList {
                                                 user_id: &user.id,
                                                 other: &other_user_id.id,
                                                 updated_at: chrono::Local::now().naive_local(),
+                                                space_id: &space.id,
                                             };
                                             insert_into(unread_user_chat)
                                                 .values(&user1)
@@ -245,12 +252,16 @@ pub async fn delete_message(
     }
 }
 
-pub async fn get_chat_list(db: web::Data<Pool>, auth: BearerAuth) -> Result<HttpResponse, Error> {
+pub async fn get_chat_list(
+    db: web::Data<Pool>,
+    auth: BearerAuth,
+    space_path: web::Path<PathInfo>,
+) -> Result<HttpResponse, Error> {
     match auth::validate_token(&auth.token().to_string()) {
         Ok(res) => {
             if res == true {
                 Ok(
-                    web::block(move || get_chat_list_db(db, auth.token().to_string()))
+                    web::block(move || get_chat_list_db(db, auth.token().to_string(), space_path))
                         .await
                         .map(|response| HttpResponse::Ok().json(response))
                         .map_err(|_| {

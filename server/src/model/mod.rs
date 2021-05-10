@@ -344,6 +344,7 @@ pub struct ChatList {
     pub user_id: i32,
     pub other: i32,
     pub updated_at: chrono::NaiveDateTime,
+    pub space_id: i32,
 }
 
 #[derive(Insertable, Debug)]
@@ -352,4 +353,5 @@ pub struct NewChatList<'a> {
     pub user_id: &'a i32,
     pub other: &'a i32,
     pub updated_at: chrono::NaiveDateTime,
+    pub space_id: &'a i32,
 }

@@ -3,7 +3,8 @@ use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use crate::handlers::paginate::*;
 use crate::handlers::types::*;
-use crate::model::{ChatList, User, UserChat};
+use crate::model::{ChatList, Space, User, UserChat};
+use crate::schema::spaces::dsl::*;
 use crate::schema::unread_user_chat::dsl::*;
 use crate::schema::user_chat::dsl::id as user_chat_id;
 use crate::schema::user_chat::dsl::user_id as sender_id;
@@ -19,11 +20,18 @@ use diesel::prelude::*;
 pub fn get_chat_list_db(
     db: web::Data<Pool>,
     token: String,
+    space: web::Path<PathInfo>,
 ) -> Result<Response<Vec<User>>, diesel::result::Error> {
     let conn = db.get().unwrap();
     let decoded_token = auth::decode_token(&token);
+    let space: Space = spaces
+        .filter(spaces_name.ilike(&space.info))
+        .first::<Space>(&conn)
+        .unwrap();
+
     let chat_list: Vec<ChatList> = unread_user_chat
         .filter(other.eq(&decoded_token.parse::<i32>().unwrap()))
+        .filter(space_id.eq(space.id))
         .order(updated_at.desc())
         .load::<ChatList>(&conn)?;
     //find a better way to do this
